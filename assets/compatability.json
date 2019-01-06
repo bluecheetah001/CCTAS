@@ -1,0 +1,31 @@
+{
+    "crosscode": {
+        "options": [
+            "assist-attack-frequency",
+            "assist-damage",
+            "assist-puzzle-speed",
+            "close-combat-input",
+            "element-wheel",
+            "gamepad-attack",
+            "gamepad-dash",
+            "pause-unfocused",
+            "quick-cursor",
+            "quick-element",
+            "quick-menu-access",
+            "skip-confirm",
+            "skip-tutorials",
+            "text-speed"
+        ]
+    },
+    "ccloader": {
+        "ignore": true
+    },
+    "TAS": {
+    },
+    "Simplify": {
+        "ignore": true
+    },
+    "OpenDevTools": {
+        "ignore": true
+    }
+}

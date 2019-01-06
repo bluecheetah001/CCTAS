@@ -1,0 +1,34 @@
+{
+    "movie": "",
+    "mode": "setup",
+    "keyboardMouseSpeed": 1,
+    "speed": 2,
+    "paused": false,
+    "menu": {
+        "closeMenu": "F1",
+        "up": "W,UP",
+        "down": "S,DOWN",
+        "left": "A,LEFT",
+        "right": "D,RIGHT",
+        "select": "ENTER,MOUSE_LEFT",
+        "back": "ESC,BACKSPACE",
+        "tabLeft": "Q",
+        "tabRight": "E,TAB"
+    },
+    "game": {
+        "openMenu": "F1",
+        "speedUp": "ADD",
+        "speedDown": "SUBTRACT",
+        "pause": "DECIMAL",
+        "step": "NUMPAD_0",
+        
+        "keyboardMouse": "M",
+        "mouseLeft": "LEFT",
+        "mouseRight": "RIGHT",
+        "mouseUp": "UP",
+        "mouseDown": "DOWN",
+        
+        "toggle": "CTRL",
+        "pressAndRelease": "ALT"
+    }
+}

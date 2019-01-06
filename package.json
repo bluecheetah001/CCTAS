@@ -1,0 +1,10 @@
+{
+    "name": "TAS",
+    "version": "0.1.0",
+    "description": "Tools to play the game frame by frame",
+    "main": "mod.js",
+    "module": true,
+    "dependencies": {
+		"crosscode": "^1.0.1"
+    }
+}
