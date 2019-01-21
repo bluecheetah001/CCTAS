@@ -4,12 +4,12 @@ if(!cc) throw new Error("No ModLoader Found!");
 import {loadJsonAsset, loadJsonFile} from './utils/loader.js';
 import * as keys from './utils/keys.js';
 
+import * as time from './patches/time.js';
+import * as inputs from './patches/inputs.js';
 import * as mainloop from './patches/mainloop.js';
 import * as random from './patches/random.js';
 import * as savefile from './patches/savefile.js'
 // import './patches/cursor.js'; // (patch Kva and draw cursor ingame)
-
-// import JSZip from 'lib/jszip.min.js';
 
 // util for showing an error from a Promise
 function showError(e) {
@@ -84,7 +84,7 @@ class KeyMap {
     
     getActions() {
         var actions = new Map();
-        for(const [key, value] of mainloop.userInputs.entries()) {
+        for(const [key, value] of inputs.user.entries()) {
             if(key.canDerive) {
                 var posAction = this.getKeyAction(key.withSign(1));
                 var negAction = this.getKeyAction(key.withSign(-1));
@@ -106,8 +106,8 @@ class KeyMap {
                 vals = new ActionVals();
                 actions.set(action, vals);
             }
-            vals.value = mainloop.userInputs.get(key);
-            vals.prev = mainloop.userInputs.getPrev(key);
+            vals.value = inputs.user.get(key);
+            vals.prev = inputs.user.getPrev(key);
         }
     }
     
@@ -180,7 +180,6 @@ class KeyMap {
     }
 }
 
-// tasState
 class TAS {
     constructor() {
         // config
@@ -202,14 +201,27 @@ class TAS {
         this._inputs = [];
     }
     
-    getMovie() {
+    // finish initialization
+    // assumes that _verions, _optionsFilter, and _inputs are already set
+    setConfig(config) {
+        this._rng = random.getState();
+        this._saveFile = savefile.getStartupSaveFileData(this._optionsFilter);
         
+        this.movieFile = config["movie"];
+        this.mode = config["mode"];
+        this.speed = config["speed"];
+        this.paused = config["paused"];
+        this._menuKeys.setConfig(config["menu"]);
+        this._gameKeys.setConfig(config["game"]);
     }
     
-    setMovie() {
-        this._rng = movie.rng;
-        this._saveFile = movie.saveFile;
-        this._inputs = movie.inputs;
+    getMovie() {
+        return {
+            versions: this._versions,
+            rng: this._rng,
+            saveFile: this._saveFile,
+            inputs: this._inputs,
+        }
     }
     
     getConfig() {
@@ -223,27 +235,18 @@ class TAS {
         };
     }
     
-    setConfig(config) {
-        this.movieFile = config["movie"];
-        this.mode = config["mode"];
-        this.speed = config["speed"];
-        this.paused = config["paused"];
-        this._menuKeys.setConfig(config["menu"]);
-        this._gameKeys.setConfig(config["game"]);
-    }
-    
     isDoneLoading() {
         return this._doneLoading;
     }
     
     setKey(key, value) {
-        mainloop.gameInput.set(keys.getKey(key), value);
+        inputs.game.set(keys.getKey(key), value);
     }
     pressKey(key) {
-        mainloop.gameInput.press(keys.getKey(key));
+        inputs.game.press(keys.getKey(key));
     }
     releaseKey(key) {
-        mainloop.gameInput.release(keys.getKey(key));
+        inputs.game.release(keys.getKey(key));
     }
     
     get speed() {
@@ -253,7 +256,7 @@ class TAS {
         mainloop.setFramesPerUpdate(value);
     }
     get paused() {
-        return mainloop.pauseOnFrame === mainloop.frameCount;
+        return mainloop.pauseOnFrame === time.frames();
     }
     set paused(pause) {
         if(pause) {
@@ -296,7 +299,7 @@ const gameActions = {
     }
 };
 
-mainloop.addPreUpdate(() => {
+mainloop.preUpdate.add(() => {
     var actions = tas._gameKeys.getActions();
     for(const [action, vals] of actions.entries()) {
         var func = gameActions[action];
@@ -305,7 +308,11 @@ mainloop.addPreUpdate(() => {
                 func();
             }
         } else if(keys.isKey(action)) {
-            mainloop.gameInputs.setMax(action, vals.value);
+            if(action === keys.MOUSE_X || action === keys.MOUSE_Y) {
+                inputs.game.set(action, vals.value);
+            } else {
+                inputs.game.setMax(action, vals.value);
+            }
         }
     }
 });
@@ -319,7 +326,6 @@ async function loadEverything() {
     
     // load config
     var config = await loadJsonAsset('config.json');
-    // TODO config = normalizeConfig(config);
     
     // load compatability
     var compatability = await loadJsonAsset('assets/compatability.json');
@@ -389,7 +395,7 @@ async function loadEverything() {
         // apply movie state
         random.setState(movie.rng);
         savefile.setSaveFileData(movie.saveFile);
-        tas.setMovie(movie);
+        tas._inputs = movie._inputs;
     }
     
     // apply config

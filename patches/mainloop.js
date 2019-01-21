@@ -1,187 +1,11 @@
-// patch the main loop to fix aparent frame rate and allow frame advance
-// intercept user inputs for consumption by this mod (userInputs)
-// injects user inputs for the game and other mods (gameInputs)
+// patch the main loop to use custom timer and inputs
+// also add features like frame advance
 
 import * as keys from '../utils/keys.js';
+import Notifier from '../utils/notifier.js';
 
-
-//
-// utils
-//
-
-const gameDiv = document.getElementById("game");
-const gameCanvas = document.getElementById("canvas");
-const fullWidth = "Vta";
-const fullHeight = "ZLa";
-
-function clamp(value, min, max) {
-    return Math.max(Math.min(value, max), min);
-}
-
-function clientToGame_x(x) {
-    var c = gameCanvas;
-    while(c) {
-        x -= c.offsetLeft;
-        c = c.offsetParent;
-    }
-    return clamp(x * ig.system.width / ig.system[fullWidth], 0, ig.system.width);
-}
-function clientToGame_y(y) {
-    var c = gameCanvas;
-    while(c) {
-        y -= c.offsetTop;
-        c = c.offsetParent;
-    }
-    return clamp(y * ig.system.height / ig.system[fullHeight], 0, ig.system.height);
-}
-
-function gameToClient_x(x) {
-    x = x * ig.system[fullWidth] / ig.system.width;
-    var c = gameCanvas;
-    while(c) {
-        x += c.offsetLeft;
-        c = c.offsetParent;
-    }
-    return x;
-}
-function gameToClient_y(y) {
-    y = y * ig.system[fullHeight] / ig.system.height;
-    var c = gameCanvas;
-    while(c) {
-        y += c.offsetTop;
-        c = c.offsetParent;
-    }
-    return y;
-}
-
-
-//
-// intercept events
-//
-
-export var userInputs = new keys.Input();
-
-// this wont intercept events for rebinding keys (not that a TAS would want to rebind keys)
-// but it also wont intercept events for mods that explicitly call *.addEventListener
-function interceptEvents(source, type, handle) {
-    source.addEventListener(type, (e) => {
-        if(e.isTrusted) {
-            // stop user inputs from propagating anywhere outside TAS UI
-            handle(e);
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-        }
-        // otherwise let events propagate into the game
-    }, true);
-}
-function interceptFocusedEvents(source, type, handle) {
-    source.addEventListener(type, (e) => {
-        if(e.isTrusted) {
-            // stop user inputs from propagating anywhere outside TAS UI
-            if(document.hasFocus()) {
-                handle(e)
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            e.stopImmediatePropagation();
-        }
-        // otherwise let events propagate into the game
-    }, true);
-}
-function mouseMoved(e) {
-    userInputs.set(keys.MOUSE_X, clientToGame_x(e.clientX));
-    userInputs.set(keys.MOUSE_Y, clientToGame_y(e.clientY));
-}
-function touchMoved(e) {
-    userInputs.set(keys.MOUSE_X, clientToGame_x(e.touches[0].clientX));
-    userInputs.set(keys.MOUSE_Y, clientToGame_y(e.touches[0].clientY));
-}
-interceptEvents(window, "keydown", (e) => {
-    userInputs.press(keys.getKeyboardKey(e.keyCode));
-});
-interceptEvents(window, "keyup", (e) => {
-    userInputs.release(keys.getKeyboardKey(e.keyCode));
-});
-interceptFocusedEvents(gameDiv, "mousedown", (e) => {
-    mouseMoved(e);
-    userInputs.press(keys.getMouseKey(e.button));
-});
-interceptFocusedEvents(window, "mouseup", (e) => {
-    mouseMoved(e);
-    userInputs.release(keys.getMouseKey(e.button));
-});
-interceptEvents(window, "mousewheel", (e) => {
-    mouseMoved(e);
-    userInputs.set(keys.WHEEL_X, e.deltaX);
-    userInputs.set(keys.WHEEL_Y, e.deltaY);
-});
-interceptEvents(window, "DOMMouseScroll", (e) => {
-    mosueMoved(e);
-    userInput.set(keys.WHEEL_Y, -e.detail);
-});
-interceptEvents(document, "mousemove", mouseMoved);
-interceptEvents(gameDiv, "touchstart", (e) => {
-    touchMoved(e);
-    userInputs.press(keys.getMouseKey(0));
-});
-interceptEvents(gameDiv, "touchend", (e) => {
-    touchMoved(e);
-    userInputs.release(keys.getMouseKey(0));
-});
-interceptEvents(gameDiv, "touchmove", touchMoved);
-interceptEvents(window, "blur", (e) => {
-    userInputs.releaseAll();
-});
-// not useful for TASing or the game
-interceptEvents(document, "mouseout", (e) => {});
-interceptEvents(document, "focus", (e) => {});
-
-
-//
-// poll gamepads
-//
-
-// hardcoded keys to avoid issues with disconnecting
-const numGamepadAxes = 4;
-const numGamepadButtons = 16;
-var gamepadKeys = [];
-for(var i = 0; i<numGamepadAxes; i++){
-    gamepadKeys.push(keys.getGamepadAxis(i));
-}
-for(var i = 0; i<numGamepadButtons; i++){
-    gamepadKeys.push(keys.getGamepadButton(i));
-}
-
-function getGamepadKey(gamepad, key) {
-    if(key.isGamepadButton) {
-        return gamepad.buttons[key.code].value;
-    } else {
-        return gamepad.axes[key.code];
-    }
-}
-
-function pollGamepads() {
-    var connected = []
-    for(var gamepad of navigator.getGamepads()) {
-        if(gamepad && gamepad.connected) {
-            connected.push(gamepad);
-        }
-    }
-    for(const key of gamepadKeys) {
-        var max = 0;
-        var absMax = 0;
-        for(var gamepad of connected) {
-            var val = getGamepadKey(gamepad, key);
-            var absVal = Math.abs(val);
-            if(absVal > absMax) {
-                max = val;
-                absMax = absVal;
-            }
-        }
-        userInputs.set(key, max);
-    }
-}
+import * as inputs from '../patches/inputs.js';
+import * as time from '../patches/time.js';
 
 
 //
@@ -201,75 +25,38 @@ const fastForward = "Wn";
 const sound = "le";
 const offsetTime = "ova";
 
-const erase = "ze"; // TODO move to a util (possibly by copying the implementation)
+const MAX_UPDATE_TIME_MILLIS = 1000/20;
 
-const FPS = 60;
-const MAX_UPDATE_TIME = 1/15;
-
-export var frameCount = 0;
 export var framesPerUpdate = 0;
 export var pauseOnFrame = 0;
 var framesToRun = 0;
 
-function setFrameCount(count) {
-    frameCount = count;
-    return ig[Timer].time = count / FPS;
-}
 export function setFramesPerUpdate(count) {
+    var delta = count - framesPerUpdate;
     framesPerUpdate = count;
-    framesToRun = 0;
+    framesToRun = Math.max(0, framesToRun+delta);
 }
 export function pauseOn(frame) {
     pauseOnFrame = frame;
 }
 export function pause(offset=0) {
-    pauseOnFrame = frameCount+offset;
+    pauseOnFrame = time.frames()+offset;
 }
 export function unpause() {
     pauseOnFrame = Infinity;
 }
 
-// TODO notifier library to make this look nicer
-var preUpdate = [];
-export function addPreUpdate(handler) {
-    preUpdate.push(handler);
-}
-export function removePreUpdate(handler) {
-    preUpdate[erase](handler);
-}
-function firePreUpdate() {
-    preUpdate.forEach(h=>h());
-}
-
-var postFrame = [];
-export function addPostFrame(handler) {
-    postFrame.push(handler);
-}
-export function removePostFrame(handler) {
-    postFrame[erase](handler);
-}
-function firePostFrame() {
-    postFrame.forEach(h=>h());
-}
-
-var postUpdate = [];
-export function addPostUpdate(handler) {
-    postUpdate.push(handler);
-}
-export function removePostUpdate(handler) {
-    postUpdate[erase](handler);
-}
-export function firePostUpdate() {
-    postUpdate.forEach(h=>h());
-}
+export var preUpdate = new Notifier();
+export var postFrame = new Notifier();
+export var postUpdate = new Notifier();
 
 function update() {
     try {
         var start = Date.now();
         
-        pollGamepads();
+        inputs.pollGamepads();
         
-        firePreUpdate();
+        preUpdate.fire();
         
         // TODO handle loading frames
         // so that we can properly only increment the frame count once (or some fixed amount of times) when loading
@@ -277,20 +64,22 @@ function update() {
         
         if(framesPerUpdate > 0) {
             if(framesToRun >= 1) {
+                // lagging, just set framesToRun
                 framesToRun = framesPerUpdate;
             } else {
                 framesToRun += framesPerUpdate;
             }
         }
         
-        while(framesToRun > 0 && frameCount < pauseOnFrame ) {
+        while(framesToRun > 0 && time.frames() < pauseOnFrame ) {
+            framesToRun -= 1;
+
             checkGlobalState();
             
-            injectInputs();
+            inputs.inject();
             
             // update time
-            setFrameCount(frameCount + 1);
-            framesToRun -= 1;
+            ig[Timer].step();
             ig.system[systemTick] = ig.system[systemTimer][timerTick](); // *ig.system.Ddb;
             ig.system[systemTickPause] = ig.system[isPaused]() ? 0 : ig.system[systemTick];
             ig.system[systemTickScale] = ig.system[systemTickPause] * ig.system[gameTimeScale];
@@ -307,161 +96,38 @@ function update() {
             // this ends up drawing multiple times when fastforwarding...
             ig.system.delegate[run]();
             
-            firePostFrame();
+            postFrame.fire();
             
-            if((Date.now() - start) < MAX_UPDATE_TIME) break;
+            if((Date.now() - start) > MAX_UPDATE_TIME_MILLIS) break;
         }
         
-        firePostUpdate();
+        postUpdate.fire();
         
-        userInputs.update();
-        userInputs.release(keys.WHEEL_X);
-        userInputs.release(keys.WHEEL_Y);
-        
+        inputs.user.update();
+        inputs.user.release(keys.WHEEL_X);
+        inputs.user.release(keys.WHEEL_Y);
         
         window.requestAnimationFrame(update);
     } catch(e) {
         ig.system.error(e);
     }
 }
+
+// TODO this does not intercept on the same frame every time
+// so the first thing that any TAS would need to do is skip the intro to resync it
+// and hopefully loading mods is never so slow that the intro advances on its own before interception
 ig.system[run] = function() {
     // on first intercepted frame we need to reset time to 0, to keep exact times consistent
-    var time = setFrameCount(0);
-    ig.system[systemTimer].last = time;
+    time.setFrames(0);
+    
+    // thankfully it does not seem like there are any other active timers during the intro
+    ig.system[systemTimer].last = time.secs();
     
     update();
 }
 
-//
-// inject inputs
-//
 
-const disableMouse = "n5a";
-const mousePos = "l6a";
-const mouseOut = "LIa";
-const lockedActions = "iIa";
-const pressedActions = "Oga";
-const downActions = "Pg";
-const upActions = "Wea";
-const releasedActions = "VX";
-const gamepads = "Yc";
-const gamepadObjects = "YEa";
-const gamepadPlugins = "aea";
-const Gamepad = "qRa";
-const buttonThresholds = "s3";
-const axisThresholds = "iJ";
-const setButton = "UOa";
-const setAxis = "Uia";
-
-// allow injects while not in focus
-ig.input[disableMouse] = function() {
-    return false;
-};
-
-// clear any inputs that might be pressed during startup
-ig.input[mousePos].x = gameToClient_x(0);
-ig.input[mousePos].y = gameToClient_y(0);
-ig.input[mouseOut] = false;
-ig.input[lockedActions] = {};
-ig.input[pressedActions] = {};
-ig.input[releasedActions] = [];
-ig.input[downActions] = {};
-ig.input[upActions] = {};
-
-// these get set every frame, so i dont think they need to be fixed
-// ig.input.Kd = true; // something about using mouse input
-// ig.input.rb = null; // something about last input source
-
-// inject custom gamepad object
-var fakeGamepad = new ig[Gamepad]();
-fakeGamepad.buttonsToSet = [];
-fakeGamepad.axesToSet = [];
-fakeGamepad[buttonThresholds][6] = 30 / 255; // Left Trigger
-fakeGamepad[buttonThresholds][7] = 30 / 255; // Right Trigger
-fakeGamepad[axisThresholds][0] = 7849 / 32767; // Left Stick X
-fakeGamepad[axisThresholds][1] = 7849 / 32767; // Left Stick Y
-fakeGamepad[axisThresholds][2] = 8689 / 32767; // Right Stick X
-fakeGamepad[axisThresholds][3] = 8689 / 32767; // Right Stick Y
-ig[gamepads][gamepadObjects] = {"html5Pad0": fakeGamepad}; // id does not matter, just reusing the default id
-// replace gamepad plugins 
-ig[gamepads][gamepadPlugins] = [{"update": (gamepadObjects) => {
-    for(var i=0;i<fakeGamepad.buttonsToSet.length; i++) {
-        fakeGamepad[setButton](i, fakeGamepad.buttonsToSet[i]);
-    }
-    for(var i=0;i<fakeGamepad.axesToSet.length; i++) {
-        fakeGamepad[setAxis](i, fakeGamepad.axesToSet[i]);
-    }
-}}];
-
-export var gameInputs = new keys.Input();
-
-function injectInputs() {
-   var clientX = gameToClient_x(gameInputs.get(keys.MOUSE_X));
-   var clientY = gameToClient_y(gameInputs.get(keys.MOUSE_Y));
-   document.dispatchEvent(new MouseEvent("mousemove", {clientX:clientX, clientY:clientY}));
-   for(const [key, value] of gameInputs.entries()) {
-       switch(key.source) {
-           case keys.INTERNAL:
-               switch(key.code) {
-                   case keys.MOUSE_X_CODE:
-                   case keys.MOUSE_Y_CODE:
-                       // already handled
-                       break;
-                   case keys.WHEEL_Y_CODE:
-                       if(value === 0) {
-                           // nothing
-                       } else {
-                           document.dispatchEvent(new WheelEvent("mousewheel", {clientX:clientX, clientY:clientY, deltaY:deltaY}));
-                       }
-                       break;
-                   case keys.WHEEL_X_CODE:
-                       // nothing, game does not use wheel x
-                       break;
-                   default:
-                       console.warn("Attempting to inject unknown key "+key);
-                       break;
-               }
-               break;
-           case keys.KEYBOARD:
-               if(gameInputs.isPressed(key)) {
-                   window.dispatchEvent(new KeyboardEvent("keydown", {keyCode:key.code}));
-               }
-               if(gameInputs.isReleased(key)) {
-                   window.dispatchEvent(new KeyboardEvent("keyup", {keyCode:key.code}));
-               }
-               break;
-           case keys.MOUSE:
-               if(gameInputs.isPressed(key)) {
-                   gameDiv.dispatchEvent(new MouseEvent("mousedown", {clientX:clientX, clientY:clientY, button:key.code}));
-               }
-               if(gameInputs.isReleased(key)) {
-                   window.dispatchEvent(new MouseEvent("mouseup", {clientX:clientX, clientY:clientY, button:key.code}));
-               }
-               break;
-           case keys.GAMEPAD_BUTTON:
-               fakeGamepad.buttonsToSet[key.code] = value;
-               break;
-           case keys.GAMEPAD_AXIS:
-               fakeGamepad.axesToSet[key.code] = value;
-               break;
-           default:
-               console.warn("Attempting to inject unknown key "+key);
-               break;
-       }
-   }
-    // not useful for TASing:
-    // mouseout - clears cursor style
-    // blur - releases every key, pauses the game if not IG_KEEP_WINDOW_FOCUS
-    // focus - unpauses the game if not IG_KEEP_WINDOW_FOCUS
-    // touch* - equivalent to mouse*
-    
-    gameInputs.update();
-}
-
-
-// NOTE: the TAS could support some of these, but they would have to get restored when loading a save state
 // TODO find more globals
-// ig.Yf is a global config object, validate it?
 function checkGlobalState() {
     if(1 !== ig.system.Azb) throw new Error("frame skip was modified");
     if(60 !== ig.system.Zoa) throw new Error("frame rate was modified");
