@@ -58,20 +58,11 @@ function update() {
         
         preUpdate.fire();
         
-        // TODO handle loading frames
-        // so that we can properly only increment the frame count once (or some fixed amount of times) when loading
-        // making sure that save warp logic works
-        
-        if(framesPerUpdate > 0) {
-            if(framesToRun >= 1) {
-                // lagging, just set framesToRun
-                framesToRun = framesPerUpdate;
-            } else {
-                framesToRun += framesPerUpdate;
-            }
+        if(ig.ready && framesPerUpdate > 0) {
+            framesToRun += framesPerUpdate;
         }
         
-        while(framesToRun > 0 && time.frames() < pauseOnFrame ) {
+        while(ig.ready && framesToRun > 0 && time.frames() < pauseOnFrame ) {
             framesToRun -= 1;
 
             checkGlobalState();
@@ -79,8 +70,8 @@ function update() {
             inputs.inject();
             
             // update time
-            ig[Timer].step();
-            ig.system[systemTick] = ig.system[systemTimer][timerTick](); // *ig.system.Ddb;
+            time.step();
+            ig.system[systemTick] = ig.system[systemTimer][timerTick]();
             ig.system[systemTickPause] = ig.system[isPaused]() ? 0 : ig.system[systemTick];
             ig.system[systemTickScale] = ig.system[systemTickPause] * ig.system[gameTimeScale];
             if(ig.system[fastForward]) {
@@ -98,7 +89,10 @@ function update() {
             
             postFrame.fire();
             
-            if((Date.now() - start) > MAX_UPDATE_TIME_MILLIS) break;
+            if(!ig.ready || (Date.now() - start) > MAX_UPDATE_TIME_MILLIS) {
+                framesToRun = 0;
+                break;
+            }
         }
         
         postUpdate.fire();

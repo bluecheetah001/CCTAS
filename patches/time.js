@@ -26,9 +26,13 @@ export function setFrames(frames) {
     return ig[Timer].time = frames / FPS;
 }
 
-ig[Timer].step = function() {
+export function step() {
     setFrames(frameCount+1);
 }
+
+// for some reason the game.loader module calls this outside of the gameloop
+// so just make it a no-op
+ig[Timer].step = function() {}
 
 
 //
