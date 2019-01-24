@@ -3,6 +3,7 @@
 
 import * as keys from '../utils/keys.js';
 import Notifier from '../utils/notifier.js';
+import * as reload from '../utils/reload.js';
 
 import * as inputs from '../patches/inputs.js';
 import * as time from '../patches/time.js';
@@ -83,6 +84,13 @@ function update() {
             // if sound is ever patched then this will probably be obsolete or make more sense
             ig[sound].context[offsetTime] = 0;
             
+            // handle pressing the reload button
+            // this is done after time.step() to mark that this frame is already done
+            // and before any game logic to be conservative with adding features to the game
+            if(inputs.game.isPrevDown(keys.RELOAD)) {
+                reload.reload();
+            }
+            
             // update the game
             // this ends up drawing multiple times when fastforwarding...
             ig.system.delegate[run]();
@@ -111,9 +119,7 @@ function update() {
 // so the first thing that any TAS would need to do is skip the intro to resync it
 // and hopefully loading mods is never so slow that the intro advances on its own before interception
 ig.system[run] = function() {
-    // on first intercepted frame we need to reset time to 0, to keep exact times consistent
-    time.setFrames(0);
-    
+    // on first intercepted frame we need to reset last time, which is normally done by timerTick
     // thankfully it does not seem like there are any other active timers during the intro
     ig.system[systemTimer].last = time.secs();
     

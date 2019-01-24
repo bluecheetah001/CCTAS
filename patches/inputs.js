@@ -244,59 +244,62 @@ ig[gamepads][gamepadPlugins] = [{"update": (gamepadObjects) => {
 export var game = new keys.Input();
 
 export function inject() {
-   var clientX = gameToClient_x(game.get(keys.MOUSE_X));
-   var clientY = gameToClient_y(game.get(keys.MOUSE_Y));
-   document.dispatchEvent(new MouseEvent("mousemove", {clientX:clientX, clientY:clientY}));
-   for(const [key, value] of game.entries()) {
-       switch(key.source) {
-           case keys.INTERNAL:
-               switch(key.code) {
-                   case keys.MOUSE_X_CODE:
-                   case keys.MOUSE_Y_CODE:
-                       // already handled
-                       break;
-                   case keys.WHEEL_Y_CODE:
-                       if(value === 0) {
-                           // nothing
-                       } else {
-                           document.dispatchEvent(new WheelEvent("mousewheel", {clientX:clientX, clientY:clientY, deltaY:value}));
-                       }
-                       break;
-                   case keys.WHEEL_X_CODE:
-                       // nothing, game does not use wheel x
-                       break;
-                   default:
-                       console.warn("Attempting to inject unknown key "+key);
-                       break;
-               }
-               break;
-           case keys.KEYBOARD:
-               if(game.isPressed(key)) {
-                   window.dispatchEvent(new KeyboardEvent("keydown", {keyCode:key.code}));
-               }
-               if(game.isReleased(key)) {
-                   window.dispatchEvent(new KeyboardEvent("keyup", {keyCode:key.code}));
-               }
-               break;
-           case keys.MOUSE:
-               if(game.isPressed(key)) {
-                   gameDiv.dispatchEvent(new MouseEvent("mousedown", {clientX:clientX, clientY:clientY, button:key.code}));
-               }
-               if(game.isReleased(key)) {
-                   window.dispatchEvent(new MouseEvent("mouseup", {clientX:clientX, clientY:clientY, button:key.code}));
-               }
-               break;
-           case keys.GAMEPAD_BUTTON:
-               fakeGamepad.buttonsToSet[key.code] = value;
-               break;
-           case keys.GAMEPAD_AXIS:
-               fakeGamepad.axesToSet[key.code] = value;
-               break;
-           default:
-               console.warn("Attempting to inject unknown key "+key);
-               break;
-       }
-   }
+    var clientX = gameToClient_x(game.get(keys.MOUSE_X));
+    var clientY = gameToClient_y(game.get(keys.MOUSE_Y));
+    document.dispatchEvent(new MouseEvent("mousemove", {clientX:clientX, clientY:clientY}));
+    for(const [key, value] of game.entries()) {
+        switch(key.source) {
+            case keys.INTERNAL:
+                switch(key.code) {
+                    case keys.MOUSE_X_CODE:
+                    case keys.MOUSE_Y_CODE:
+                        // already handled
+                        break;
+                    case keys.WHEEL_Y_CODE:
+                        if(value === 0) {
+                            // nothing
+                        } else {
+                            window.dispatchEvent(new WheelEvent("mousewheel", {clientX:clientX, clientY:clientY, deltaY:value}));
+                        }
+                        break;
+                    case keys.WHEEL_X_CODE:
+                        // nothing, game does not use wheel x
+                        break;
+                    case keys.RELOAD_CODE:
+                        // nothing, mainloop handles this
+                        break;
+                    default:
+                        console.warn("Attempting to inject unknown key "+key);
+                        break;
+                }
+                break;
+            case keys.KEYBOARD:
+                if(game.isPressed(key)) {
+                    window.dispatchEvent(new KeyboardEvent("keydown", {keyCode:key.code}));
+                }
+                if(game.isReleased(key)) {
+                    window.dispatchEvent(new KeyboardEvent("keyup", {keyCode:key.code}));
+                }
+                break;
+            case keys.MOUSE:
+                if(game.isPressed(key)) {
+                    gameDiv.dispatchEvent(new MouseEvent("mousedown", {clientX:clientX, clientY:clientY, button:key.code}));
+                }
+                if(game.isReleased(key)) {
+                    window.dispatchEvent(new MouseEvent("mouseup", {clientX:clientX, clientY:clientY, button:key.code}));
+                }
+                break;
+            case keys.GAMEPAD_BUTTON:
+                fakeGamepad.buttonsToSet[key.code] = value;
+                break;
+            case keys.GAMEPAD_AXIS:
+                fakeGamepad.axesToSet[key.code] = value;
+                break;
+            default:
+                console.warn("Attempting to inject unknown key "+key);
+                break;
+        }
+    }
     // not useful for TASing:
     // mouseout - clears cursor style
     // blur - releases every key, pauses the game if not IG_KEEP_WINDOW_FOCUS

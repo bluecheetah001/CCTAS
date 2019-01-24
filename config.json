@@ -2,7 +2,7 @@
     "movie": "",
     "mode": "setup",
     "keyboardMouseSpeed": 1,
-    "speed": 2,
+    "speed": 1,
     "paused": false,
     "menu": {
         "closeMenu": "F1",
@@ -29,6 +29,10 @@
         "mouseDown": "DOWN",
         
         "toggle": "CTRL",
-        "pressAndRelease": "ALT"
+        "pressAndRelease": "ALT",
+        
+        "restart": "F4",
+        
+        "RELOAD": "F5"
     }
 }

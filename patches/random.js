@@ -1,5 +1,7 @@
 // patch for random number generation to make it reproduceable
 
+import * as reload from '../utils/reload.js';
+
 import newPrng from '../libs/seedrandom.js'
 
 var count = 0;
@@ -27,3 +29,10 @@ export function getNumCalls(reset=false) {
     if(reset) count = 0;
     return c;
 }
+
+
+//
+// recover state from reload
+//
+
+reload.serde("rng", getState, setState);

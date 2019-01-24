@@ -1,3 +1,4 @@
+import * as reload from '../utils/reload.js';
 
 //
 // patch how timers work
@@ -53,3 +54,10 @@ ig[eventSteps].SET_VAR_TIME.prototype.start = function() {
         ig.log("SET_VAR_TIME: Variable Name is not a String!");
     }
 }
+
+
+//
+// recover state from reload
+//
+
+reload.serde("frame", frames, setFrames);

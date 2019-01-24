@@ -20,6 +20,7 @@ export const MOUSE_X_CODE = 0;
 export const MOUSE_Y_CODE = 1;
 export const WHEEL_X_CODE = 2;
 export const WHEEL_Y_CODE = 3;
+export const RELOAD_CODE = 4;
 function canInternalDerive(code) {
     return code === WHEEL_X_CODE || code === WHEEL_Y_CODE;
 }
@@ -190,6 +191,7 @@ export const WHEEL_LEFT = WHEEL_X.withSign(-1);
 export const WHEEL_RIGHT = WHEEL_X.withSign(1);
 export const WHEEL_UP = WHEEL_Y.withSign(-1);
 export const WHEEL_DOWN = WHEEL_Y.withSign(1);
+export const RELOAD = getCodedKey(INTERNAL, RELOAD_CODE);
 
 export function isKey(key) {
     return key instanceof Key;

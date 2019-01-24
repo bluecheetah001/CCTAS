@@ -1,5 +1,7 @@
 // patch for save file so 
 
+import * as reload from '../utils/reload.js';
+
 const storage = 'zd';
 const saveSlots = 'ng';
 const autoSlot = 'lt';
@@ -26,7 +28,7 @@ function getData(globals) {
     }
     return {
         lastSlot: ig[storage][lastSlot],
-        saveSlots: slots,
+        slots: slots,
         autoSlot: ig[storage][autoSlot] ? ig[storage][autoSlot].src : null,
         globals: ig[CryptUtils][encryptJson](globals)
     };
@@ -52,27 +54,26 @@ export function writeGlobalsToDisk() {
     ig[storage].data.save(JSON.stringify(userSave));
 }
 
-export function getSaveFileData(filter, internal=false) {
-    var globals = internal ? ig[storage][globalsObj] : getGlobals();
-    var options = globals.options;
-    var tasOptions = {}
-    for(var option of filter) {
-        if(option in options) {
-            tasOptions[option] = options[option];
-        } else {
-            console.warn("Option '"+option+"' does not exist.");
-        }
-    }
-    // drop achievements, they should not matter...
-    return getData({options:tasOptions});
+var whiteList = [];
+export function whiteListOptions(options) {
+    whiteList.push(...options);
 }
 
-export function getStartupSaveFileData(filter) {
-    return getSaveFileData(filter, true);
+function _getSaveFileData(startup) {
+    var globals = startup ? ig[storage][globalsObj] : getGlobals();
+    return getData(globals);
+}
+
+export function getSaveFileData() {
+    return _getSaveFileData(false);
+}
+
+export function getStartupSaveFileData() {
+    return _getSaveFileData(true);
 }
 
 
-export function setSaveFileData(data) {
+function _setSaveFileData(data, filter) {
     // save slots
     ig[storage][lastSlot] = data.lastSlot;
     ig[storage][saveSlots] = [];
@@ -87,14 +88,36 @@ export function setSaveFileData(data) {
     
     // globals
     var globals = ig[CryptUtils][decryptJson](data.globals);
+    if(filter) {
+        var filtered = {};
+        for(var option of whiteList) {
+            if(option in globals.options) {
+                filtered[option] = globals.options[option];
+            } else {
+                console.warn("Option '"+option+"' does not exist.");
+            }
+        }
+        // drop achievements, they should not matter...
+        globals = {options:filtered}
+    }
     globals = ig.merge(ig[storage][globalsObj], globals);
     for (var listener of ig[storage][listeners]) {
         if(listener[applyGlobals]) listener[applyGlobals](globals);
     }
 }
 
+export function setSaveFileData(data) {
+    _setSaveFileData(data, true);
+}
+
+function restoreSaveFileData(data) {
+    // disabling the filtering maybe isn't necessary
+    // but I like that it makes sure nothing changes
+    _setSaveFileData(data, false);
+}
+
 // fix getEncryptedSaveSlot to be able to properly show errors when there is no auto save
-// this should be moved into a mod on its own (ideally ccloader or simplify)
+// TODO this should be moved into a mod on its own (ideally ccloader or simplify)
 ig[storage][getEncryptedSaveSlot] = function(slot, extra) {
     var save;
     if(slot == -1) {
@@ -112,3 +135,10 @@ ig[storage][getEncryptedSaveSlot] = function(slot, extra) {
         return "";
     }
 }
+
+
+//
+// recover state from reload
+//
+
+reload.serde("save", getSaveFileData, restoreSaveFileData);

@@ -3,6 +3,7 @@ if(!cc) throw new Error("No ModLoader Found!");
 
 import {loadJsonAsset, loadJsonFile} from './utils/loader.js';
 import * as keys from './utils/keys.js';
+import * as reload from './utils/reload.js';
 
 import * as time from './patches/time.js';
 import * as inputs from './patches/inputs.js';
@@ -164,16 +165,19 @@ class KeyMap {
             }
             config[name] = val;
         }
+        return config;
     }
     
     setConfig(config) {
         this._keyToAction.clear();
         this._actionToKeys.clear();
-        for(var action in config) {
-            if(this.remapKeys && keys.isValidKeyString(action)) {
-                action = keys.getKey(action);
+        for(var actionName in config) {
+            var action = actionName;
+            if(this.remapKeys && keys.isValidKeyString(actionName)) {
+                action = keys.getKey(actionName);
             }
-            for(var key of config[action].split(',')) {
+            // TODO handle empty config[actionName] to disable passthough for that key
+            for(var key of config[actionName].split(',')) {
                 this.setKeyAction(keys.getKey(key.trim()), action);
             }
         }
@@ -195,24 +199,34 @@ class TAS {
         
         // movie
         this._versions = {};
-        this._optionsFilter = [];
         this._rng = null;
         this._saveFile = null;
         this._inputs = [];
     }
     
     // finish initialization
-    // assumes that _verions, _optionsFilter, and _inputs are already set
+    // assumes that _verions, and _inputs are already set
     setConfig(config) {
         this._rng = random.getState();
-        this._saveFile = savefile.getStartupSaveFileData(this._optionsFilter);
+        this._saveFile = savefile.getStartupSaveFileData();
         
-        this.movieFile = config["movie"];
-        this.mode = config["mode"];
-        this.speed = config["speed"];
-        this.paused = config["paused"];
-        this._menuKeys.setConfig(config["menu"]);
-        this._gameKeys.setConfig(config["game"]);
+        this.movieFile = config.movie;
+        this.mode = config.mode;
+        this.speed = config.speed;
+        this.paused = config.paused;
+        this._menuKeys.setConfig(config.menu);
+        this._gameKeys.setConfig(config.game);
+    }
+    
+    getConfig() {
+        return {
+            movie: this.movieFile,
+            mode: this.mode,
+            speed: this.speed,
+            paused: this.paused,
+            menu: this._menuKeys.getConfig(),
+            game: this._gameKeys.getConfig()
+        };
     }
     
     getMovie() {
@@ -224,15 +238,38 @@ class TAS {
         }
     }
     
-    getConfig() {
-        return {
-            "movie": this.movieFile,
-            "mode": this.mode,
-            "speed": this.speed,
-            "paused": this.paused,
-            "menu": this._menuKeys.getConfig(),
-            "game": this._gameKeys.getConfig()
+    // TODO this is very similar to setConfig
+    serialize() {
+        return  {
+            // movie
+            initialRng: this._rng,
+            initialSave: this._saveFile,
+            inputs: this._inputs,
+            
+            // config
+            movie: this.movieFile,
+            mode: this.mode,
+            speed: this.speed,
+            paused: this.paused,
+            menuKeys: this._menuKeys.getConfig(),
+            gameKeys: this._gameKeys.getConfig()
         };
+    }
+    
+    deserialize(state) {
+        // movie
+        // this._versions is recomputed on startup
+        this._rng = state.initialRng;
+        this._saveFile = state.initialSave;
+        this._inputs = state.inputs;
+        
+        // config
+        this.movieFile = state.movie;
+        this.mode = state.mode;
+        this.speed = state.speed;
+        this.paused = state.paused;
+        this._menuKeys.setConfig(state.menuKeys);
+        this._gameKeys.setConfig(state.gameKeys);
     }
     
     isDoneLoading() {
@@ -296,6 +333,9 @@ const gameActions = {
     },
     "step": () => {
         tas.step();
+    },
+    "restart": () => {
+        chrome.runtime.reload();
     }
 };
 
@@ -317,15 +357,26 @@ mainloop.preUpdate.add(() => {
     }
 });
 
+
+//
+// recover state from reload
+//
+
+// put the config (and movie) into reload storage so they dont have to be saved to disk
+// alternativly reload will need a mechanism to wait on saving the movie file to disk
+reload.serde("config", tas.serialize.bind(tas), tas.deserialize.bind(tas));
+
+
+//
+// load everything
+//
+
 async function loadEverything() {
     // load keys
     var keysNames = await loadJsonAsset('assets/keys.json');
     for(var name in keysNames) {
         keys.getKey(keysNames[name]).name = name;
     }
-    
-    // load config
-    var config = await loadJsonAsset('config.json');
     
     // load compatability
     var compatability = await loadJsonAsset('assets/compatability.json');
@@ -349,7 +400,7 @@ async function loadEverything() {
         }
         modInfo.known = true;
         if(modInfo.enabled && modCompat.options) {
-            tas._optionsFilter.push(...modCompat.options);
+            savefile.whiteListOptions(modCompat.options);
         }
         if(modCompat.ignore) {
             modInfo.ignore = true;
@@ -362,44 +413,53 @@ async function loadEverything() {
         }
     }
     
-    // load movie
-    if(config.movie) {
-        var movie = await loadJsonFile(config.movie);
+    // TODO code flow of reloading vs startup is a bit confusing
+    // because they need to end up in effectivly the same state
+    // but data is stored quite differently
+    if(!reload.recover()) {
+        // load config
+        var config = await loadJsonAsset('config.json');
         
-        // check compatability
-        for(var modName in movie.versions) {
-            var modInfo = modInfos[modName];
-            if(!modInfo) {
-                modInfo = modInfos[modName] = {};
+        // load movie
+        if(config.movie) {
+            var movie = await loadJsonFile(config.movie);
+            
+            // check compatability
+            // TODO should this (or something similar) happen during reload.recover as well?
+            for(var modName in movie.versions) {
+                var modInfo = modInfos[modName];
+                if(!modInfo) {
+                    modInfo = modInfos[modName] = {};
+                }
+                modInfo.expected = movie.versions[modName];
             }
-            modInfo.expected = movie.versions[modName];
-        }
-        // TODO make warn into prompts
-        // TODO add compatability option for looser version checks (specifically for TAS, which may just get handled specally)
-        for(var modName in modInfos) {
-            var modInfo = modInfos[modName];
-            if(modInfo.ignore) continue;
-            if(!modInfo.known) {
-                console.warn('Unknown mod '+modName+' add an entry to assets/compatability.json to specify its compatability');
+            // TODO make warn into prompts
+            // TODO add compatability option for looser version checks (specifically for TAS, which may just get handled specally)
+            for(var modName in modInfos) {
+                var modInfo = modInfos[modName];
+                if(modInfo.ignore) continue;
+                if(!modInfo.known) {
+                    console.warn('Unknown mod '+modName+' add an entry to assets/compatability.json to specify its compatability');
+                }
+                var correctEnabled = (modInfo.expected !== undefined) === (modInfo.enabled||false);
+                var correctVersion = modInfo.expected === modInfo.installed;
+                if(!correctVersion) {
+                    console.warn('TAS is expecting '+modName+' version '+modInfo.expected+' but version '+modInfo.installed+' is installed');
+                }
+                if(!correctEnabled) {
+                    console.warn('TAS is expecting '+modName+' to be '+(modInfo.enabled?'disabled':'enabled'));
+                }
             }
-            var correctEnabled = (modInfo.expected !== undefined) === (modInfo.enabled||false);
-            var correctVersion = modInfo.expected === modInfo.installed;
-            if(!correctVersion) {
-                console.warn('TAS is expecting '+modName+' version '+modInfo.expected+' but version '+modInfo.installed+' is installed');
-            }
-            if(!correctEnabled) {
-                console.warn('TAS is expecting '+modName+' to be '+(modInfo.enabled?'disabled':'enabled'));
-            }
+            
+            // apply movie state
+            random.setState(movie.rng);
+            savefile.setSaveFileData(movie.save);
+            tas._inputs = movie._inputs;
         }
         
-        // apply movie state
-        random.setState(movie.rng);
-        savefile.setSaveFileData(movie.saveFile);
-        tas._inputs = movie._inputs;
+        // apply config
+        tas.setConfig(config);
     }
-    
-    // apply config
-    tas.setConfig(config);
 }
 
 

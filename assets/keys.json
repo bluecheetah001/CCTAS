@@ -8,6 +8,8 @@
     "WHEEL_UP": "WHEEL_Y-",
     "WHEEL_DOWN": "WHEEL_Y+",
     
+    "RELOAD": "INTERNAL_4",
+    
     "MOUSE_LEFT": "MOUSE_0",
     "MOUSE_MIDDLE": "MOUSE_1",
     "MOUSE_RIGHT": "MOUSE_2",
