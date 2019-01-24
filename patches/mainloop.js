@@ -26,7 +26,7 @@ const fastForward = "Wn";
 const sound = "le";
 const offsetTime = "ova";
 
-const MAX_UPDATE_TIME_MILLIS = 1000/20;
+const MAX_UPDATE_TIME = 1/20;
 
 export var framesPerUpdate = 0;
 export var pauseOnFrame = 0;
@@ -53,7 +53,7 @@ export var postUpdate = new Notifier();
 
 function update() {
     try {
-        var start = Date.now();
+        var start = time.now();
         
         inputs.pollGamepads();
         
@@ -97,7 +97,7 @@ function update() {
             
             postFrame.fire();
             
-            if(!ig.ready || (Date.now() - start) > MAX_UPDATE_TIME_MILLIS) {
+            if(!ig.ready || (time.now() - start) > MAX_UPDATE_TIME) {
                 framesToRun = 0;
                 break;
             }
@@ -120,8 +120,8 @@ function update() {
 // and hopefully loading mods is never so slow that the intro advances on its own before interception
 ig.system[run] = function() {
     // on first intercepted frame we need to reset last time, which is normally done by timerTick
-    // thankfully it does not seem like there are any other active timers during the intro
-    ig.system[systemTimer].last = time.secs();
+    // though I'm not sure why the intro gets stuck...
+    ig.system[systemTimer].last = time.gameNow();
     
     update();
 }
