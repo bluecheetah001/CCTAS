@@ -90,6 +90,10 @@ ig.system[run] = function update() {
             // and before any game logic to be conservative with adding features to the game
             if(inputs.game.isPrevDown(keys.RELOAD)) {
                 reload.reload();
+                // if reloading via refreshPage then we need to make sure that we stop the game loop
+                // though I am not supporting cancelling a reload as that causes desyncs anyway
+                framesToRun = 0;
+                break;
             }
             
             // update the game
