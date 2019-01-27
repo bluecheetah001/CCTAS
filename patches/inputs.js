@@ -1,5 +1,13 @@
 import * as keys from '../utils/keys.js';
 
+import {
+    System,
+    Input,
+    Gamepads,
+    Gamepad,
+    gamepads
+} from '../utils/defs.js';
+
 
 //
 // utils
@@ -7,8 +15,6 @@ import * as keys from '../utils/keys.js';
 
 const gameDiv = document.getElementById("game");
 const gameCanvas = document.getElementById("canvas");
-const fullWidth = "Vta";
-const fullHeight = "ZLa";
 
 function clamp(value, min, max) {
     return Math.max(Math.min(value, max), min);
@@ -20,7 +26,7 @@ function clientToGame_x(x) {
         x -= c.offsetLeft;
         c = c.offsetParent;
     }
-    return clamp(x * ig.system.width / ig.system[fullWidth], 0, ig.system.width);
+    return clamp(x * ig.system.width / ig.system[System.canvasWidth], 0, ig.system.width);
 }
 function clientToGame_y(y) {
     var c = gameCanvas;
@@ -28,11 +34,11 @@ function clientToGame_y(y) {
         y -= c.offsetTop;
         c = c.offsetParent;
     }
-    return clamp(y * ig.system.height / ig.system[fullHeight], 0, ig.system.height);
+    return clamp(y * ig.system.height / ig.system[System.canvasHeight], 0, ig.system.height);
 }
 
 function gameToClient_x(x) {
-    x = x * ig.system[fullWidth] / ig.system.width;
+    x = x * ig.system[System.canvasWidth] / ig.system.width;
     var c = gameCanvas;
     while(c) {
         x += c.offsetLeft;
@@ -41,7 +47,7 @@ function gameToClient_x(x) {
     return x;
 }
 function gameToClient_y(y) {
-    y = y * ig.system[fullHeight] / ig.system.height;
+    y = y * ig.system[System.canvasHeight] / ig.system.height;
     var c = gameCanvas;
     while(c) {
         y += c.offsetTop;
@@ -131,7 +137,7 @@ interceptEvents(window, "blur", (e) => {
 });
 // not useful for TASing or the game
 interceptEvents(document, "mouseout", (e) => {});
-interceptEvents(document, "focus", (e) => {});
+interceptEvents(window, "focus", (e) => {});
 
 
 //
@@ -184,60 +190,39 @@ export function pollGamepads() {
 // inject inputs
 //
 
-const disableMouse = "n5a";
-const mousePos = "l6a";
-const mouseOut = "LIa";
-const lockedActions = "iIa";
-const pressedActions = "Oga";
-const downActions = "Pg";
-const upActions = "Wea";
-const releasedActions = "VX";
-const gamepads = "Yc";
-const gamepadObjects = "YEa";
-const gamepadPlugins = "aea";
-const Gamepad = "qRa";
-const buttonThresholds = "s3";
-const axisThresholds = "iJ";
-const setButton = "UOa";
-const setAxis = "Uia";
-
 // allow injects while not in focus
-ig.input[disableMouse] = function() {
+ig.input[Input.isFocusLost] = function() {
     return false;
 };
 
 // clear any inputs that might be pressed during startup
-ig.input[mousePos].x = gameToClient_x(0);
-ig.input[mousePos].y = gameToClient_y(0);
-ig.input[mouseOut] = false;
-ig.input[lockedActions] = {};
-ig.input[pressedActions] = {};
-ig.input[releasedActions] = [];
-ig.input[downActions] = {};
-ig.input[upActions] = {};
-
-// these get set every frame, so i dont think they need to be fixed
-// ig.input.Kd = true; // something about using mouse input
-// ig.input.rb = null; // something about last input source
+ig.input[Input.lastMouse].x = gameToClient_x(0);
+ig.input[Input.lastMouse].y = gameToClient_y(0);
+if(Input.mouseOut.exists) ig.input[Input.mouseOut] = false;
+ig.input[Input.locked] = {};
+ig.input[Input.pressed] = {};
+ig.input[Input.down] = {};
+ig.input[Input.up] = {};
+ig.input[Input.released] = [];
 
 // inject custom gamepad object
 var fakeGamepad = new ig[Gamepad]();
-fakeGamepad.buttonsToSet = [];
-fakeGamepad.axesToSet = [];
-fakeGamepad[buttonThresholds][6] = 30 / 255; // Left Trigger
-fakeGamepad[buttonThresholds][7] = 30 / 255; // Right Trigger
-fakeGamepad[axisThresholds][0] = 7849 / 32767; // Left Stick X
-fakeGamepad[axisThresholds][1] = 7849 / 32767; // Left Stick Y
-fakeGamepad[axisThresholds][2] = 8689 / 32767; // Right Stick X
-fakeGamepad[axisThresholds][3] = 8689 / 32767; // Right Stick Y
-ig[gamepads][gamepadObjects] = {"html5Pad0": fakeGamepad}; // id does not matter, just reusing the default id
+var buttonsToSet = [];
+var axesToSet = [];
+fakeGamepad[Gamepad.buttonThresholds][6] = 30 / 255; // Left Trigger
+fakeGamepad[Gamepad.buttonThresholds][7] = 30 / 255; // Right Trigger
+fakeGamepad[Gamepad.axisThresholds][0] = 7849 / 32767; // Left Stick X
+fakeGamepad[Gamepad.axisThresholds][1] = 7849 / 32767; // Left Stick Y
+fakeGamepad[Gamepad.axisThresholds][2] = 8689 / 32767; // Right Stick X
+fakeGamepad[Gamepad.axisThresholds][3] = 8689 / 32767; // Right Stick Y
+ig[gamepads][Gamepads.gamepads] = {"html5Pad0": fakeGamepad}; // id does not matter, just reusing the default id
 // replace gamepad plugins
-ig[gamepads][gamepadPlugins] = [{"update": (gamepadObjects) => {
-    for(var i=0;i<fakeGamepad.buttonsToSet.length; i++) {
-        fakeGamepad[setButton](i, fakeGamepad.buttonsToSet[i]);
+ig[gamepads][Gamepads.plugins] = [{"update": (gamepads) => {
+    for(var i=0;i<buttonsToSet.length; i++) {
+        fakeGamepad[Gamepad.setButton](i, buttonsToSet[i]);
     }
-    for(var i=0;i<fakeGamepad.axesToSet.length; i++) {
-        fakeGamepad[setAxis](i, fakeGamepad.axesToSet[i]);
+    for(var i=0;i<axesToSet.length; i++) {
+        fakeGamepad[Gamepad.setAxis](i, axesToSet[i]);
     }
 }}];
 
@@ -290,10 +275,10 @@ export function inject() {
                 }
                 break;
             case keys.GAMEPAD_BUTTON:
-                fakeGamepad.buttonsToSet[key.code] = value;
+                buttonsToSet[key.code] = value;
                 break;
             case keys.GAMEPAD_AXIS:
-                fakeGamepad.axesToSet[key.code] = value;
+                axesToSet[key.code] = value;
                 break;
             default:
                 console.warn("Attempting to inject unknown key "+key);

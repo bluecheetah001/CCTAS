@@ -468,4 +468,5 @@ var loadingPromise = loadEverything()
     .finally(() => {
         tas._doneLoading = true;
         document.body.dispatchEvent(new Event('tasInitialized'));
+        mainloop.startGame();
     });

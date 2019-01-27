@@ -8,23 +8,17 @@ import * as reload from '../utils/reload.js';
 import * as inputs from '../patches/inputs.js';
 import * as time from '../patches/time.js';
 
+import {
+    run,
+    Timer,
+    System,
+    sound,
+    WebAudio
+} from '../utils/defs.js';
 
 //
 // patch main loop
 //
-
-const run = "ya";
-const Timer = "ml";
-const timerTick = "ja";
-const systemTimer = "j_a";
-const systemTick = "jz";
-const systemTickPause = "Sa";
-const systemTickScale = "ja";
-const isPaused = "dea";
-const gameTimeScale = "gm";
-const fastForward = "Wn";
-const sound = "le";
-const offsetTime = "ova";
 
 const MAX_UPDATE_TIME = 1/20;
 
@@ -51,7 +45,16 @@ export var preUpdate = new Notifier();
 export var postFrame = new Notifier();
 export var postUpdate = new Notifier();
 
-function update() {
+var canRunGame = false;
+export function startGame() {
+    canRunGame = true;
+}
+
+
+// TODO this does not intercept on the same frame every time
+// so the first thing that any TAS would need to do is skip the intro to resync it
+// and hopefully loading mods is never so slow that the intro advances on its own before interception
+ig.system[run] = function update() {
     try {
         var start = time.now();
         
@@ -59,30 +62,28 @@ function update() {
         
         preUpdate.fire();
         
-        if(ig.ready && framesPerUpdate > 0) {
+        if(canRunGame && ig.ready && framesPerUpdate > 0) {
             framesToRun += framesPerUpdate;
         }
         
         while(ig.ready && framesToRun > 0 && time.frames() < pauseOnFrame ) {
             framesToRun -= 1;
-
-            checkGlobalState();
             
             inputs.inject();
             
             // update time
             time.step();
-            ig.system[systemTick] = ig.system[systemTimer][timerTick]();
-            ig.system[systemTickPause] = ig.system[isPaused]() ? 0 : ig.system[systemTick];
-            ig.system[systemTickScale] = ig.system[systemTickPause] * ig.system[gameTimeScale];
-            if(ig.system[fastForward]) {
-                ig.system[systemTickPause] *= 8;
-                ig.system[systemTickScale] *= 8;
+            ig.system[System.tick] = ig.system[System.timer][Timer.tick]();
+            ig.system[System.tickPause] = ig.system[System.isPaused]() ? 0 : ig.system[System.tick];
+            ig.system[System.tickScale] = ig.system[System.tickPause] * ig.system[System.timeScale];
+            if(ig.system[System.fastForward]) {
+                ig.system[System.tickPause] *= 8;
+                ig.system[System.tickScale] *= 8;
             }
             // supposedly this could be non-zero, but im not sure what circumstances that would actually happen in
             // perhaps when sound is paused, but when the sound is resumed it will get set back to 0 anyway
             // if sound is ever patched then this will probably be obsolete or make more sense
-            ig[sound].context[offsetTime] = 0;
+            ig[sound].context[WebAudio.offset] = 0;
             
             // handle pressing the reload button
             // this is done after time.step() to mark that this frame is already done
@@ -109,32 +110,8 @@ function update() {
         inputs.user.release(keys.WHEEL_X);
         inputs.user.release(keys.WHEEL_Y);
         
-        window.requestAnimationFrame(update);
+        window.requestAnimationFrame(ig.system[run]);
     } catch(e) {
         ig.system.error(e);
     }
 }
-
-// TODO this does not intercept on the same frame every time
-// so the first thing that any TAS would need to do is skip the intro to resync it
-// and hopefully loading mods is never so slow that the intro advances on its own before interception
-ig.system[run] = function() {
-    // on first intercepted frame we need to reset last time, which is normally done by timerTick
-    // though I'm not sure why the intro gets stuck...
-    ig.system[systemTimer].last = time.gameNow();
-    
-    update();
-}
-
-
-// TODO find more globals
-function checkGlobalState() {
-    if(1 !== ig.system.Azb) throw new Error("frame skip was modified");
-    if(60 !== ig.system.Zoa) throw new Error("frame rate was modified");
-    if(1 !== ig[Timer].N8) throw new Error("global time scale was modified");
-    if(1 !== ig.system.Ddb) throw new Error("game time scale was modified");
-    if(null !== ig.system.Nra) throw new Error("game class was modified");
-    if(expectedDelegate !== ig.system.delegate) throw new Error("game object was modified");
-}
-var expectedDelegate = ig.system.delegate;
-if(0 !== ig.system.Z4a) throw new Error("initialization did not use requestAnimationFrame");
