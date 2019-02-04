@@ -21,12 +21,12 @@ import {
 
 const MAX_UPDATE_TIME = 1/20;
 
-export var framesPerUpdate = 0;
-export var pauseOnFrame = 0;
-var framesToRun = 0;
+export let framesPerUpdate = 0;
+export let pauseOnFrame = 0;
+let framesToRun = 0;
 
 export function setFramesPerUpdate(count) {
-    var delta = count - framesPerUpdate;
+    const delta = count - framesPerUpdate;
     framesPerUpdate = count;
     framesToRun = Math.max(0, framesToRun+delta);
 }
@@ -40,11 +40,11 @@ export function unpause() {
     pauseOnFrame = Infinity;
 }
 
-export var preUpdate = new Notifier();
-export var postFrame = new Notifier();
-export var postUpdate = new Notifier();
+export const preUpdate = new Notifier();
+export const postFrame = new Notifier();
+export const postUpdate = new Notifier();
 
-var canRunGame = false;
+let canRunGame = false;
 export function startGame() {
     canRunGame = true;
 }
@@ -55,7 +55,7 @@ export function startGame() {
 // and hopefully loading mods is never so slow that the intro advances on its own before interception
 ig.system[run] = function update() {
     try {
-        var start = time.now();
+        const start = time.now();
         
         inputs.pollGamepads();
         

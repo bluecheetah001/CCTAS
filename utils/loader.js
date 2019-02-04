@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 
-var thisMod;
+let thisMod;
 for(const mod of window.activeMods) {
     if(mod.name === 'TAS') {
         thisMod = mod;

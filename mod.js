@@ -84,25 +84,25 @@ class KeyMap {
     }
     
     getActions() {
-        var actions = new Map();
+        const actions = new Map();
         for(const [key, value] of inputs.user.entries()) {
             if(key.canDerive) {
-                var posAction = this.getKeyAction(key.withSign(1));
-                var negAction = this.getKeyAction(key.withSign(-1));
+                const posAction = this.getKeyAction(key.withSign(1));
+                const negAction = this.getKeyAction(key.withSign(-1));
                 if(posAction || negAction) {
                     this._getAction(key.withSign(1), posAction, actions);
                     this._getAction(key.withSign(-1), negAction, actions);
                     continue;
                 }
             }
-            var action = this.getKeyAction(key);
+            const action = this.getKeyAction(key);
             this._getAction(key, action, actions);
         }
         return actions;
     }
     _getAction(key, action, actions) {
         if(action) {
-            var vals = actions.get(action);
+            let vals = actions.get(action);
             if(!vals) {
                 vals = new ActionVals();
                 actions.set(action, vals);
@@ -113,9 +113,9 @@ class KeyMap {
     }
     
     removeKey(key) {
-        var oldAction = this._keyToAction.get(key);
+        const oldAction = this._keyToAction.get(key);
         this._keyToAction.delete(key);
-        var oldActionKeys = this._actionToKeys.get(oldAction);
+        const oldActionKeys = this._actionToKeys.get(oldAction);
         if(oldActionKeys) {
             oldActionKeys.delete(key);
         }
@@ -131,7 +131,7 @@ class KeyMap {
         this.removeKey(key);
         
         this._keyToAction.set(key, action);
-        var keys = this._actionToKeys.get(action);
+        let keys = this._actionToKeys.get(action);
         if(!keys) {
             keys = new Set();
             this._actionToKeys.set(action, keys);
@@ -140,7 +140,7 @@ class KeyMap {
     }
     
     getKeyAction(key) {
-        var action = this._keyToAction.get(key);
+        let action = this._keyToAction.get(key);
         if(!action && !key.isDerived && this.remapKeys) {
             // passthough doesn't make sense for derived keys
             // since the user chose to configure only half of the axis
@@ -153,10 +153,10 @@ class KeyMap {
     }
     
     getConfig() {
-        var config = {};
+        const config = {};
         for(const [action, keys] of this._actionToKeys.entries()) {
-            var name = action.name || action; // action is either a Key or a String
-            var val = "";
+            const name = action.name || action; // action is either a Key or a String
+            let val = "";
             for(const key of keys) {
                 if(val !== "") {
                     val += ",";
@@ -171,13 +171,13 @@ class KeyMap {
     setConfig(config) {
         this._keyToAction.clear();
         this._actionToKeys.clear();
-        for(var actionName in config) {
-            var action = actionName;
+        for(const actionName in config) {
+            let action = actionName;
             if(this.remapKeys && keys.isValidKeyString(actionName)) {
                 action = keys.getKey(actionName);
             }
             // TODO handle empty config[actionName] to disable passthough for that key
-            for(var key of config[actionName].split(',')) {
+            for(const key of config[actionName].split(',')) {
                 this.setKeyAction(keys.getKey(key.trim()), action);
             }
         }
@@ -337,9 +337,9 @@ const gameActions = {
 };
 
 mainloop.preUpdate.add(() => {
-    var actions = tas._gameKeys.getActions();
+    const actions = tas._gameKeys.getActions();
     for(const [action, vals] of actions.entries()) {
-        var func = gameActions[action];
+        const func = gameActions[action];
         if(func) {
             if(vals.isPressed) {
                 func();
@@ -370,28 +370,28 @@ reload.serde("config", tas.serialize.bind(tas), tas.deserialize.bind(tas));
 
 async function loadEverything() {
     // load keys
-    var keysNames = await loadJsonAsset('assets/keys.json');
-    for(var name in keysNames) {
+    const keysNames = await loadJsonAsset('assets/keys.json');
+    for(const name in keysNames) {
         keys.getKey(keysNames[name]).name = name;
     }
     
     // load compatability
-    var compatability = await loadJsonAsset('assets/compatability.json');
-    var modInfos = {
+    const compatability = await loadJsonAsset('assets/compatability.json');
+    const modInfos = {
         crosscode: {version: versions.crosscode, enabled: true},
         ccloader: {version: versions.ccloader, enabled: true},
     };
-    for(var mod of activeMods) {
+    for(const mod of activeMods) {
         // aparently ccloader does not require mods to specify a version
         // so normalize undefined with "" to make validating easier
         modInfos[mod.name] = {installed:mod.version||"", enabled:true};
     }
-    for(var mod of inactiveMods) {
+    for(const mod of inactiveMods) {
         modInfos[mod.name] = {installed:mod.version||""};
     }
-    for(var modName in compatability) {
-        var modCompat = compatability[modName];
-        var modInfo = modInfos[modName];
+    for(const modName in compatability) {
+        const modCompat = compatability[modName];
+        let modInfo = modInfos[modName];
         if(!modInfo) {
             modInfo = modInfos[modName] = {};
         }
@@ -403,8 +403,8 @@ async function loadEverything() {
             modInfo.ignore = true;
         }
     }
-    for(var modName in modInfos) {
-        var modInfo = modInfos[modName]
+    for(const modName in modInfos) {
+        const modInfo = modInfos[modName]
         if(modInfo.enabled && !modInfo.ignore) {
             tas._versions[modName] = modInfo.version;
         }
@@ -415,16 +415,16 @@ async function loadEverything() {
     // but data is stored quite differently
     if(!reload.recover()) {
         // load config
-        var config = await loadJsonAsset('config.json');
+        const config = await loadJsonAsset('config.json');
         
         // load movie
         if(config.movie) {
-            var movie = await loadJsonFile(config.movie);
+            const movie = await loadJsonFile(config.movie);
             
             // check compatability
             // TODO should this (or something similar) happen during reload.recover as well?
-            for(var modName in movie.versions) {
-                var modInfo = modInfos[modName];
+            for(const modName in movie.versions) {
+                let modInfo = modInfos[modName];
                 if(!modInfo) {
                     modInfo = modInfos[modName] = {};
                 }
@@ -432,14 +432,14 @@ async function loadEverything() {
             }
             // TODO make warn into prompts
             // TODO add compatability option for looser version checks (specifically for TAS, which may just get handled specally)
-            for(var modName in modInfos) {
-                var modInfo = modInfos[modName];
+            for(const modName in modInfos) {
+                let modInfo = modInfos[modName];
                 if(modInfo.ignore) continue;
                 if(!modInfo.known) {
                     console.warn('Unknown mod '+modName+' add an entry to assets/compatability.json to specify its compatability');
                 }
-                var correctEnabled = (modInfo.expected !== undefined) === (modInfo.enabled||false);
-                var correctVersion = modInfo.expected === modInfo.installed;
+                const correctEnabled = (modInfo.expected !== undefined) === (modInfo.enabled||false);
+                const correctVersion = modInfo.expected === modInfo.installed;
                 if(!correctVersion) {
                     console.warn('TAS is expecting '+modName+' version '+modInfo.expected+' but version '+modInfo.installed+' is installed');
                 }
@@ -460,7 +460,7 @@ async function loadEverything() {
 }
 
 
-var loadingPromise = loadEverything()
+loadEverything()
     .catch(showError)
     .finally(() => {
         tas._doneLoading = true;

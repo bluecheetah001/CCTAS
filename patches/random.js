@@ -4,8 +4,8 @@ import * as reload from '../utils/reload.js';
 
 import newPrng from '../libs/seedrandom.js'
 
-var count = 0;
-var prng = newPrng({})
+let count = 0;
+let prng = newPrng({})
 
 Math.random = function() {
     count += 1;
@@ -25,7 +25,7 @@ export function setState(state) {
 }
 
 export function getNumCalls(reset=false) {
-    var c = count;
+    const c = count;
     if(reset) count = 0;
     return c;
 }

@@ -35,7 +35,7 @@ function def(arg) {
 
 
 // used all over the place, so leaving it at top level
-export let run = def({
+export const run = def({
     // can be found as the function passed into window.requestAnimationFrame
     "v1.0.0-10":"ya",
     "v1.0.1-1": "ya",
@@ -44,7 +44,7 @@ export let run = def({
 
 
 // impact.base.event
-export let Event = def({
+export const Event = def({
     // constructor uses a.name, a.input, a.steps
     // also defines a couple of static utils
     "v1.0.0-10":"Ja",
@@ -58,7 +58,7 @@ export let Event = def({
         "v1.0.2-2": "Cq",
     },
 });
-export let EventStepBase = def({
+export const EventStepBase = def({
     // actual definition is in impact.base.step
     // but currently this is just being used as wrapper for common fields in event steps
     varName: {
@@ -69,7 +69,7 @@ export let EventStepBase = def({
         "v1.0.2-2": "Ad",
     },
 });
-export let EventSteps = def({
+export const EventSteps = def({
     // container for event steps
     // a lot of which are defined in impact.feature.base.event-steps
     "v1.0.0-10":"oa",
@@ -79,7 +79,7 @@ export let EventSteps = def({
 
 
 // impact.base.input
-export let Input = def({
+export const Input = def({
     // singleton instance is constructed with the nice name ig.input
     lastMouse: {
         // ?.assign(lastMouse, mouse) at the end of mousemove function
@@ -134,7 +134,7 @@ export let Input = def({
 
 
 // impact.base.system
-export let System = def({
+export const System = def({
    // singleton instance is constructed with the nice name ig.system
    // though most uses are going to use shorter variable it is copied to
    canvasWidth: {
@@ -196,7 +196,7 @@ export let System = def({
        "v1.0.2-2": "Yn",
    },
 });
-export let sound = def({
+export const sound = def({
         // used in System.run as ig.system.sound.context.offset = ...
     "v1.0.0-10":"ke",
     "v1.0.1-1": "le",
@@ -205,7 +205,7 @@ export let sound = def({
 
 
 // impact.base.system.web-audio
-export let WebAudio = def({
+export const WebAudio = def({
     // this is the class of system.sound.context
     offset: {
         // used in System.run as ig.system.sound.context.offset = ...
@@ -217,7 +217,7 @@ export let WebAudio = def({
 
 
 // impact.base.timer
-export let Timer = def({
+export const Timer = def({
     // sole class in this module
     // step is called in first step System.run
     "v1.0.0-10":"jl",
@@ -234,7 +234,7 @@ export let Timer = def({
 
 
 // impact.feature.gamepad.gamepad
-export let Gamepads = def({
+export const Gamepads = def({
     // class with name in constructor
     plugins: {
         // derived from a module local list in the constructor
@@ -249,7 +249,7 @@ export let Gamepads = def({
         "v1.0.2-2": "bFa",
     },
 });
-export let Gamepad = def({
+export const Gamepad = def({
     // class with a bunch of arrays
     // see impact.feature.gamepad.html5-gamepad for where easy to identify usages
     "v1.0.0-10":"bRa",
@@ -284,7 +284,7 @@ export let Gamepad = def({
         "v1.0.2-2": "cja",
     },
 });
-export let gamepads = def({
+export const gamepads = def({
     // singleton instance of Gamepads
     "v1.0.0-10":"Xc",
     "v1.0.1-1": "Yc",
@@ -293,13 +293,13 @@ export let gamepads = def({
 
 
 // impact.feature.storage.storage 
-export let SaveSlot = def({
+export const SaveSlot = def({
     // has src and data fields
     "v1.0.0-10":"T1",
     "v1.0.1-1": "a2",
     "v1.0.2-2": "h2",
 });
-export let StorageListener = def({
+export const StorageListener = def({
     // pseudo interface
     apply: {
         // the only time ig.storage.globals is used is as an argument to this function
@@ -318,7 +318,7 @@ export let StorageListener = def({
         "v1.0.2-2": "fKa",
     }
 });
-export let Storage = def({
+export const Storage = def({
     // class name in constructor
     lastSlot: {
         // derived from this.data.data.lastSlot in constructor
@@ -363,13 +363,13 @@ export let Storage = def({
         "v1.0.2-2": "h3a",
     },
 });
-export let storage = def({
+export const storage = def({
     // single instance of Storage
     "v1.0.0-10":"zd",
     "v1.0.1-1": "zd",
     "v1.0.2-2": "yd",
 });
-export let CryptUtils = def({
+export const CryptUtils = def({
     // utils for encrypting and decrypting
     "v1.0.0-10":"$P",
     "v1.0.1-1": "hQ",

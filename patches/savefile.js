@@ -12,8 +12,8 @@ import {
 
 
 function getData(globals) {
-    var slots = [];
-    for(var slot of ig[storage][Storage.slots]) {
+    const slots = [];
+    for(const slot of ig[storage][Storage.slots]) {
         slots.push(slot.src);
     }
     return {
@@ -25,8 +25,8 @@ function getData(globals) {
 }
 
 function getGlobals() {
-    var globals = {};
-    for (var listener of ig[storage][Storage.listeners]) {
+    const globals = {};
+    for (const listener of ig[storage][Storage.listeners]) {
         if(listener[StorageListener.update]) listener[StorageListener.update](globals);
     }
     return globals;
@@ -37,15 +37,15 @@ function getGlobals() {
 ig[storage][Storage.writeToDisk] = function(){};
 
 // allow writing globals to disk on request
-var userSave = getData({});
+const userSave = getData({});
 export function writeGlobalsToDisk() {
-    var globals = getGlobals();
+    const globals = getGlobals();
     userSave.globals = ig[CryptUtils][CryptUtils.encrypt](globals);
     ig[storage].data.save(JSON.stringify(userSave));
 }
 
 function _getSaveFileData(startup) {
-    var globals = startup ? ig[storage][Storage.globals] : getGlobals();
+    const globals = startup ? ig[storage][Storage.globals] : getGlobals();
     return getData(globals);
 }
 
@@ -57,7 +57,7 @@ export function getStartupSaveFileData() {
     return _getSaveFileData(true);
 }
 
-var whiteList = [];
+const whiteList = [];
 export function whiteListOptions(options) {
     whiteList.push(...options);
 }
@@ -66,7 +66,7 @@ function _setSaveFileData(data, filter) {
     // save slots
     ig[storage][Storage.lastSlot] = data.lastSlot;
     ig[storage][Storage.slots] = [];
-    for(var slotSrc of data.slots) {
+    for(const slotSrc of data.slots) {
         ig[storage][Storage.slots].push(new ig[SaveSlot](slotSrc));
     }
     if(data.autoSlot) {
@@ -76,10 +76,10 @@ function _setSaveFileData(data, filter) {
     }
     
     // globals
-    var globals = ig[CryptUtils][CryptUtils.decrypt](data.globals);
+    let globals = ig[CryptUtils][CryptUtils.decrypt](data.globals);
     if(filter) {
-        var filtered = {};
-        for(var option of whiteList) {
+        const filtered = {};
+        for(const option of whiteList) {
             if(option in globals.options) {
                 filtered[option] = globals.options[option];
             } else {
@@ -90,7 +90,7 @@ function _setSaveFileData(data, filter) {
         globals = {options:filtered}
     }
     globals = ig.merge(ig[storage][Storage.globals], globals);
-    for (var listener of ig[storage][Storage.listeners]) {
+    for (const listener of ig[storage][Storage.listeners]) {
         if(listener[StorageListener.apply]) listener[StorageListener.apply](globals);
     }
 }
@@ -108,14 +108,14 @@ function restoreSaveFileData(data) {
 // fix Storage.getSlotSrc to be able to properly show errors when there is no auto save
 // TODO this should be moved into a mod on its own (ideally ccloader or simplify)
 ig[storage][Storage.getSlotSrc] = function(slot, extra) {
-    var save;
+    let save;
     if(slot == -1) {
         save = this[Storage.autoSlot];
     } else {
         save = this[Storage.slots][slot];
     }
     if(save) {
-        var data = save.getData();
+        let data = save.getData();
         if(extra) {
             data = ig.merge(ig.copy(data), extra);
         }

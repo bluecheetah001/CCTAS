@@ -24,8 +24,8 @@ function canInternalDerive(code) {
     return code === WHEEL_X_CODE || code === WHEEL_Y_CODE;
 }
 
-var namedKeys = new Map();
-var codedKeys = new Map();
+const namedKeys = new Map();
+const codedKeys = new Map();
 
 codedKeys.set(INTERNAL, new Map());
 codedKeys.set(KEYBOARD, new Map());
@@ -135,18 +135,18 @@ class Key {
 }
 
 export function getKey(name) {
-    var key = namedKeys.get(name);
+    let key = namedKeys.get(name);
     if(key) return key;
-    var sign = 0;
+    let sign = 0;
     if(name.endsWith('+')) sign = 1;
     else if(name.endsWith('-')) sign = -1;
-    var subName = sign === 0 ? name : name.substring(0, name.length - 1);
-    var subKey = namedKeys.get(subName);
+    const subName = sign === 0 ? name : name.substring(0, name.length - 1);
+    let subKey = namedKeys.get(subName);
     if(!subKey) {
-        var match = keyCodeRegex.exec(subName);
+        const match = keyCodeRegex.exec(subName);
         if(!match) throw new Error("Unknown key "+name);
-        var source = match[1];
-        var code = parseInt(match[2], 10);
+        const source = match[1];
+        const code = parseInt(match[2], 10);
         subKey = getCodedKey(source, code);
     }
     if(sign === 0) return subKey;
@@ -155,10 +155,10 @@ export function getKey(name) {
 }
 
 export function getCodedKey(source, code, sign = null) {
-    var codes = codedKeys.get(source);
+    const codes = codedKeys.get(source);
     if(!codes) throw new Error("Invalid key source "+source);
     if(!Number.isInteger(code) || code < 0 || code > MAX_CODE) throw new Error("Invalid key code "+code);
-    var key = codes.get(code);
+    let key = codes.get(code);
     if(!key) {
         key = new Key(source, code);
         codes.set(code, key);
@@ -210,7 +210,7 @@ export class Input {
     }
     get(key) {
         if(key.isDerived) {
-            var value = this._curr.get(key.source) || 0;
+            const value = this._curr.get(key.source) || 0;
             return Math.max(0, value * key.code);
         } else {
             return this._curr.get(key) || 0;
@@ -218,7 +218,7 @@ export class Input {
     }
     getTrans(key) {
         if(key.isDerived) {
-            var value = this._trans.get(key.source);
+            const value = this._trans.get(key.source);
             if(value === undefined) return undefined;
             return Math.max(0, value * key.code);
         } else {
@@ -227,7 +227,7 @@ export class Input {
     }
     getPrev(key) {
         if(key.isDerived) {
-            var value = this._prev.get(key.source) || 0;
+            const value = this._prev.get(key.source) || 0;
             return Math.max(0, value * key.code);
         } else {
             return this._prev.get(key) || 0;
@@ -305,7 +305,7 @@ export class Input {
             key = key.source;
         }
         
-        var old = this.getTrans(key)
+        const old = this.getTrans(key)
         if(!old || Math.abs(value) > Math.abs(old)) {
             this._curr.set(key, value);
             this._trans.set(key, value);

@@ -21,7 +21,7 @@ function clamp(value, min, max) {
 }
 
 function clientToGame_x(x) {
-    var c = gameCanvas;
+    let c = gameCanvas;
     while(c) {
         x -= c.offsetLeft;
         c = c.offsetParent;
@@ -29,7 +29,7 @@ function clientToGame_x(x) {
     return clamp(x * ig.system.width / ig.system[System.canvasWidth], 0, ig.system.width);
 }
 function clientToGame_y(y) {
-    var c = gameCanvas;
+    let c = gameCanvas;
     while(c) {
         y -= c.offsetTop;
         c = c.offsetParent;
@@ -39,7 +39,7 @@ function clientToGame_y(y) {
 
 function gameToClient_x(x) {
     x = x * ig.system[System.canvasWidth] / ig.system.width;
-    var c = gameCanvas;
+    let c = gameCanvas;
     while(c) {
         x += c.offsetLeft;
         c = c.offsetParent;
@@ -48,7 +48,7 @@ function gameToClient_x(x) {
 }
 function gameToClient_y(y) {
     y = y * ig.system[System.canvasHeight] / ig.system.height;
-    var c = gameCanvas;
+    let c = gameCanvas;
     while(c) {
         y += c.offsetTop;
         c = c.offsetParent;
@@ -61,7 +61,7 @@ function gameToClient_y(y) {
 // intercept events
 //
 
-export var user = new keys.Input();
+export const user = new keys.Input();
 
 // this wont intercept events for rebinding keys (not that a TAS would want to rebind keys)
 // but it also wont intercept events for mods that explicitly call *.addEventListener
@@ -147,11 +147,11 @@ interceptEvents(window, "focus", (e) => {});
 // hardcoded keys to avoid issues with disconnecting
 const numGamepadAxes = 4;
 const numGamepadButtons = 16;
-var gamepadKeys = [];
-for(var i = 0; i<numGamepadAxes; i++){
+const gamepadKeys = [];
+for(let i = 0; i<numGamepadAxes; i++){
     gamepadKeys.push(keys.getGamepadAxis(i));
 }
-for(var i = 0; i<numGamepadButtons; i++){
+for(let i = 0; i<numGamepadButtons; i++){
     gamepadKeys.push(keys.getGamepadButton(i));
 }
 
@@ -164,18 +164,18 @@ function getGamepadKey(gamepad, key) {
 }
 
 export function pollGamepads() {
-    var connected = []
-    for(var gamepad of navigator.getGamepads()) {
+    const connected = []
+    for(const gamepad of navigator.getGamepads()) {
         if(gamepad && gamepad.connected) {
             connected.push(gamepad);
         }
     }
     for(const key of gamepadKeys) {
-        var max = 0;
-        var absMax = 0;
-        for(var gamepad of connected) {
-            var val = getGamepadKey(gamepad, key);
-            var absVal = Math.abs(val);
+        let max = 0;
+        let absMax = 0;
+        for(const gamepad of connected) {
+            const val = getGamepadKey(gamepad, key);
+            const absVal = Math.abs(val);
             if(absVal > absMax) {
                 max = val;
                 absMax = absVal;
@@ -206,9 +206,9 @@ ig.input[Input.up] = {};
 ig.input[Input.released] = [];
 
 // inject custom gamepad object
-var fakeGamepad = new ig[Gamepad]();
-var buttonsToSet = [];
-var axesToSet = [];
+const fakeGamepad = new ig[Gamepad]();
+const buttonsToSet = [];
+const axesToSet = [];
 fakeGamepad[Gamepad.buttonThresholds][6] = 30 / 255; // Left Trigger
 fakeGamepad[Gamepad.buttonThresholds][7] = 30 / 255; // Right Trigger
 fakeGamepad[Gamepad.axisThresholds][0] = 7849 / 32767; // Left Stick X
@@ -218,19 +218,19 @@ fakeGamepad[Gamepad.axisThresholds][3] = 8689 / 32767; // Right Stick Y
 ig[gamepads][Gamepads.gamepads] = {"html5Pad0": fakeGamepad}; // id does not matter, just reusing the default id
 // replace gamepad plugins
 ig[gamepads][Gamepads.plugins] = [{"update": (gamepads) => {
-    for(var i=0;i<buttonsToSet.length; i++) {
+    for(let i=0;i<buttonsToSet.length; i++) {
         fakeGamepad[Gamepad.setButton](i, buttonsToSet[i]);
     }
-    for(var i=0;i<axesToSet.length; i++) {
+    for(let i=0;i<axesToSet.length; i++) {
         fakeGamepad[Gamepad.setAxis](i, axesToSet[i]);
     }
 }}];
 
-export var game = new keys.Input();
+export const game = new keys.Input();
 
 export function inject() {
-    var clientX = gameToClient_x(game.get(keys.MOUSE_X));
-    var clientY = gameToClient_y(game.get(keys.MOUSE_Y));
+    const clientX = gameToClient_x(game.get(keys.MOUSE_X));
+    const clientY = gameToClient_y(game.get(keys.MOUSE_Y));
     document.dispatchEvent(new MouseEvent("mousemove", {clientX:clientX, clientY:clientY}));
     for(const [key, value] of game.entries()) {
         switch(key.source) {

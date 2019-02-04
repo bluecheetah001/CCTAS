@@ -15,8 +15,8 @@ import {
 
 const FPS = 60;
 
-var didFirstFrame = false;
-var frameCount = 0;
+let didFirstFrame = false;
+let frameCount = 0;
 
 export function frames() {
     return frameCount;
@@ -41,7 +41,7 @@ export function step() {
 // since the game will run a single frame between patching and intercepting
 function firstFrameFix(){
     // thankfully there is only a single timer instance during the intro
-    var time = frameCount / FPS;
+    const time = frameCount / FPS;
     ig[Timer].time = time;
     ig.system[System.timer].last = time;
 }
@@ -65,7 +65,7 @@ export function now() {
 //
 
 ig[EventSteps].SET_VAR_TIME.prototype.start = function() {
-    var v = ig[Event][Event.getVarName](this[EventStepBase.varName]);
+    const v = ig[Event][Event.getVarName](this[EventStepBase.varName]);
     if(v) {
         ig.vars.set(v, gameNow() * 1000);
     } else {
