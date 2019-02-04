@@ -5,6 +5,7 @@
     "main": "mod.js",
     "module": true,
     "dependencies": {
-		"crosscode": "^1.0.1"
+        "crosscode": "^1.0.0",
+        "Restart Button": "^1.1.0"
     }
 }

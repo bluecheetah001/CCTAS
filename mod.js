@@ -214,7 +214,6 @@ class TAS {
         this.mode = config.mode;
         this.speed = config.speed;
         this.paused = config.paused;
-        this.reloadCmd = config.reloadCmd;
         this._menuKeys.setConfig(config.menu);
         this._gameKeys.setConfig(config.game);
     }
@@ -225,7 +224,6 @@ class TAS {
             mode: this.mode,
             speed: this.speed,
             paused: this.paused,
-            reloadCmd: this.reloadCmd,
             menu: this._menuKeys.getConfig(),
             game: this._gameKeys.getConfig()
         };
@@ -253,7 +251,6 @@ class TAS {
             mode: this.mode,
             speed: this.speed,
             paused: this.paused,
-            reloadCmd: this.reloadCmd,
             menuKeys: this._menuKeys.getConfig(),
             gameKeys: this._gameKeys.getConfig()
         };
@@ -271,7 +268,6 @@ class TAS {
         this.mode = state.mode;
         this.speed = state.speed;
         this.paused = state.paused;
-        this.reloadCmd = state.reloadCmd;
         this._menuKeys.setConfig(state.menuKeys);
         this._gameKeys.setConfig(state.gameKeys);
     }
@@ -316,13 +312,6 @@ class TAS {
         mainloop.pause(1);
     }
     
-    get reloadCmd() {
-        return reload.getReloadCmd();
-    }
-    set reloadCmd(cmd) {
-        reload.setReloadCmd(cmd);
-    }
-    
     getNumRngCalls(reset=false) {
         return random.getNumCalls(reset);
     }
@@ -343,7 +332,7 @@ const gameActions = {
         tas.step();
     },
     "restart": () => {
-        reload.hardReload();
+        reload.reload();
     }
 };
 

@@ -4,7 +4,6 @@
     "keyboardMouseSpeed": 1,
     "speed": 1,
     "paused": false,
-    "reloadCmd": "newProcess",
     "menu": {
         "closeMenu": "F1",
         "up": "W,UP",
@@ -32,8 +31,6 @@
         "toggle": "CTRL",
         "pressAndRelease": "ALT",
         
-        "restart": "F4",
-        
-        "RELOAD": "F5"
+        "restart": "F4"
     }
 }

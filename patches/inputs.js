@@ -250,9 +250,6 @@ export function inject() {
                     case keys.WHEEL_X_CODE:
                         // nothing, game does not use wheel x
                         break;
-                    case keys.RELOAD_CODE:
-                        // nothing, mainloop handles this
-                        break;
                     default:
                         console.warn("Attempting to inject unknown key "+key);
                         break;

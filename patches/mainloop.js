@@ -3,7 +3,6 @@
 
 import * as keys from '../utils/keys.js';
 import Notifier from '../utils/notifier.js';
-import * as reload from '../utils/reload.js';
 
 import * as inputs from '../patches/inputs.js';
 import * as time from '../patches/time.js';
@@ -84,17 +83,6 @@ ig.system[run] = function update() {
             // perhaps when sound is paused, but when the sound is resumed it will get set back to 0 anyway
             // if sound is ever patched then this will probably be obsolete or make more sense
             ig[sound].context[WebAudio.offset] = 0;
-            
-            // handle pressing the reload button
-            // this is done after time.step() to mark that this frame is already done
-            // and before any game logic to be conservative with adding features to the game
-            if(inputs.game.isPrevDown(keys.RELOAD)) {
-                reload.reload();
-                // if reloading via refreshPage then we need to make sure that we stop the game loop
-                // though I am not supporting cancelling a reload as that causes desyncs anyway
-                framesToRun = 0;
-                break;
-            }
             
             // update the game
             // this ends up drawing multiple times when fastforwarding...
