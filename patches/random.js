@@ -2,18 +2,18 @@
 
 import * as reload from '../utils/reload.js';
 
-import newPrng from '../libs/seedrandom.js'
+import newPrng from '../libs/seedrandom.js';
 
 let count = 0;
-let prng = newPrng({})
+let prng = newPrng({});
 
-Math.random = function() {
+Math.random = function random() {
     count += 1;
     return prng();
-}
+};
 
 export function setSeed(seed) {
-    prng = newPrng({seed:seed});
+    prng = newPrng({seed});
 }
 
 export function getState() {
@@ -21,10 +21,10 @@ export function getState() {
 }
 
 export function setState(state) {
-    prng = newPrng({state:state});
+    prng = newPrng({state});
 }
 
-export function getNumCalls(reset=false) {
+export function getNumCalls(reset = false) {
     const c = count;
     if(reset) count = 0;
     return c;
@@ -35,4 +35,4 @@ export function getNumCalls(reset=false) {
 // recover state from reload
 //
 
-reload.serde("rng", getState, setState);
+reload.serde('rng', getState, setState);

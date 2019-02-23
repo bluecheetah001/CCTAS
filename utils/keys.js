@@ -55,20 +55,20 @@ export function isValidCodedKey(string) {
 }
 
 class Key {
-    constructor(source, code, name) {
+    constructor(source, code) {
         this.source = source;
         this.code = code;
-        this.canDerive = this.isGamepadAxis || this.isInternal && canInternalDerive(code);
+        this.canDerive = this.isGamepadAxis || (this.isInternal && canInternalDerive(code));
         this._rawName = null;
         this._name = null;
         this._positive = null;
         this._negative = null;
     }
-    
+
     get isDerived() {
         return this.source instanceof Key;
     }
-    
+
     get isInternal() {
         return this.source === INTERNAL;
     }
@@ -84,32 +84,32 @@ class Key {
     get isGamepadAxis() {
         return this.source === GAMEPAD_AXIS;
     }
-    
+
     get name() {
         return this._name || this.rawName;
     }
-    
+
     get rawName() {
         if(!this._rawName) {
             if(this.isDerived) {
                 this._rawName = this.source.rawName + (this.code === 1 ? '+' : '-');
             } else {
-                this._rawName = this.source + '_' + this.code;
+                this._rawName = `${this.source}_${this.code}`;
             }
         }
         return this._rawName;
     }
-    
+
     set name(name) {
-        if(!isValidKeyName(name)) throw new Error("Attempting to set "+this.rawName+".name to "+name+", which is invalid");
-        if(this._name) throw new Error("Attempting to set "+this.rawName+".name to "+name+", but it is already named "+this._name);
-        if(namedKeys.has(name)) throw new Error("Attempting to set "+this.rawName+".name to "+name+", but "+namedKeys.get(name).rawName+" already has that name");
+        if(!isValidKeyName(name)) throw new Error(`Attempting to set ${this.rawName}.name to ${name}, which is invalid`);
+        if(this._name) throw new Error(`Attempting to set ${this.rawName}.name to ${name}, but it is already named ${this._name}`);
+        if(namedKeys.has(name)) throw new Error(`Attempting to set ${this.rawName}.name to ${name}, but ${namedKeys.get(name).rawName} already has that name`);
         namedKeys.set(name, this);
         this._name = name;
     }
-    
+
     withSign(sign) {
-        if(!this.canDerive) throw new Error("Key "+this+" is cannot be derived");
+        if(!this.canDerive) throw new Error(`Key ${this} is cannot be derived`);
         if(sign > 0) {
             if(!this._positive) this._positive = new Key(this, 1);
             return this._positive;
@@ -118,16 +118,16 @@ class Key {
             if(!this._negative) this._negative = new Key(this, -1);
             return this._negative;
         }
-        throw new Error("Invalid axis direction "+sign);
+        throw new Error(`Invalid axis direction ${sign}`);
     }
     withOtherSign() {
-        if(!this.isDerived) throw new Error("Key "+this.name+" is not derived");
+        if(!this.isDerived) throw new Error(`Key ${this.name} is not derived`);
         return this.source.withSign(-this.code);
     }
-    
+
     toString() {
         if(this._name) {
-            return this.name+"("+this.rawName+")";
+            return `${this.name}(${this.rawName})`;
         } else {
             return this.rawName;
         }
@@ -144,7 +144,7 @@ export function getKey(name) {
     let subKey = namedKeys.get(subName);
     if(!subKey) {
         const match = keyCodeRegex.exec(subName);
-        if(!match) throw new Error("Unknown key "+name);
+        if(!match) throw new Error(`Unknown key ${name}`);
         const source = match[1];
         const code = parseInt(match[2], 10);
         subKey = getCodedKey(source, code);
@@ -156,8 +156,8 @@ export function getKey(name) {
 
 export function getCodedKey(source, code, sign = null) {
     const codes = codedKeys.get(source);
-    if(!codes) throw new Error("Invalid key source "+source);
-    if(!Number.isInteger(code) || code < 0 || code > MAX_CODE) throw new Error("Invalid key code "+code);
+    if(!codes) throw new Error(`Invalid key source ${source}`);
+    if(!Number.isInteger(code) || code < 0 || code > MAX_CODE) throw new Error(`Invalid key code ${code}`);
     let key = codes.get(code);
     if(!key) {
         key = new Key(source, code);
@@ -200,7 +200,7 @@ export function isKey(key) {
 //
 
 // TODO put this in config, or set configurable per key?
-export const THRESHOLD = .1;
+export const THRESHOLD = 0.1;
 
 export class Input {
     constructor() {
@@ -259,7 +259,7 @@ export class Input {
         }
         return null;
     }
-    
+
     // iterable over every known key
     keys() {
         return this._curr.keys();
@@ -276,17 +276,17 @@ export class Input {
     prevEntries() {
         return this._prev.entries();
     }
-    
+
     _set(key, value) {
         this._curr.set(key, value);
         this._trans.set(key, value);
     }
     set(key, value) {
-        if(!Number.isFinite(value)) throw new Error("Invalid value "+value+" for key "+key);
+        if(!Number.isFinite(value)) throw new Error(`Invalid value ${value} for key ${key}`);
         if(!key.canDerive) {
-            if(value < 0) throw new Error("Invalid value "+value+" for key "+key);
+            if(value < 0) throw new Error(`Invalid value ${value} for key ${key}`);
         }
-        
+
         if(key.isDerived) {
             value *= key.code;
             key = key.source;
@@ -295,17 +295,17 @@ export class Input {
         return this;
     }
     setMax(key, value) {
-        if(!Number.isFinite(value)) throw new Error("Invalid value "+value+" for key "+key);
+        if(!Number.isFinite(value)) throw new Error(`Invalid value ${value} for key ${key}`);
         if(!key.canDerive) {
-            if(value < 0) throw new Error("Invalid value "+value+" for key "+key);
+            if(value < 0) throw new Error(`Invalid value ${value} for key ${key}`);
         }
-        
+
         if(key.isDerived) {
             value *= key.code;
             key = key.source;
         }
-        
-        const old = this.getTrans(key)
+
+        const old = this.getTrans(key);
         if(!old || Math.abs(value) > Math.abs(old)) {
             this._curr.set(key, value);
             this._trans.set(key, value);
@@ -318,7 +318,7 @@ export class Input {
     release(key) {
         return this.set(key, 0);
     }
-    
+
     releaseAll() {
         // this cannot call this._curr.clear() as that would break entries
         for(const key of this._curr.keys()) {
@@ -326,7 +326,7 @@ export class Input {
         }
         return this;
     }
-    
+
     update() {
         this._prev = new Map(this._curr);
         this._trans.clear();

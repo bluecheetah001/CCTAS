@@ -6,7 +6,7 @@ export default class Notifier {
         this._listeners.push(listener);
     }
     remove(listener) {
-        for(let i=0; i<this._listeners.length; i++) {
+        for(let i = 0; i < this._listeners.length; i += 1) {
             if(this._listeners[i] === listener) {
                 this._listeners.splice(i, 1);
                 break;

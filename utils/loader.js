@@ -3,15 +3,15 @@
 
 const fs = require('fs');
 
-let thisMod;
+let thisMod = null;
 for(const mod of window.activeMods) {
     if(mod.name === 'TAS') {
         thisMod = mod;
         break;
     }
 }
-if(!thisMod) {
-    throw new Error("failed to find TAS mod, did the name change?");
+if(thisMod === null) {
+    throw new Error('failed to find TAS mod, did the name change?');
 }
 
 const thisDir = thisMod.baseDirectory;

@@ -34,7 +34,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 const width = 256;        // each RC4 output is 0 <= x < 256
 const chunks = 6;         // at least six RC4 outputs for each double
 const digits = 52;        // there are 52 significant digits in a double
-const rngname = 'random'; // rngname: name for Math.random and Math.seedrandom
 const startdenom = Math.pow(width, chunks);
 const significance = Math.pow(2, digits);
 const overflow = significance * 2;
@@ -86,9 +85,9 @@ export default function seedrandom({seed = null, state = null}) {
     // Load the arc4 state from the given state.
     copy(state, arc4);
   }
-  
+
   prng.state = function() { return copy(arc4, {}); }
-  
+
   return prng;
 }
 

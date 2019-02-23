@@ -5,7 +5,7 @@ import {
     Input,
     Gamepads,
     Gamepad,
-    gamepads
+    gamepads,
 } from '../utils/defs.js';
 
 
@@ -13,14 +13,14 @@ import {
 // utils
 //
 
-const gameDiv = document.getElementById("game");
-const gameCanvas = document.getElementById("canvas");
+const gameDiv = document.getElementById('game');
+const gameCanvas = document.getElementById('canvas');
 
 function clamp(value, min, max) {
     return Math.max(Math.min(value, max), min);
 }
 
-function clientToGame_x(x) {
+function clientToGameX(x) {
     let c = gameCanvas;
     while(c) {
         x -= c.offsetLeft;
@@ -28,7 +28,7 @@ function clientToGame_x(x) {
     }
     return clamp(x * ig.system.width / ig.system[System.canvasWidth], 0, ig.system.width);
 }
-function clientToGame_y(y) {
+function clientToGameY(y) {
     let c = gameCanvas;
     while(c) {
         y -= c.offsetTop;
@@ -37,7 +37,7 @@ function clientToGame_y(y) {
     return clamp(y * ig.system.height / ig.system[System.canvasHeight], 0, ig.system.height);
 }
 
-function gameToClient_x(x) {
+function gameToClientX(x) {
     x = x * ig.system[System.canvasWidth] / ig.system.width;
     let c = gameCanvas;
     while(c) {
@@ -46,7 +46,7 @@ function gameToClient_x(x) {
     }
     return x;
 }
-function gameToClient_y(y) {
+function gameToClientY(y) {
     y = y * ig.system[System.canvasHeight] / ig.system.height;
     let c = gameCanvas;
     while(c) {
@@ -82,7 +82,7 @@ function interceptFocusedEvents(source, type, handle) {
         if(e.isTrusted) {
             // stop user inputs from propagating anywhere outside TAS UI
             if(document.hasFocus()) {
-                handle(e)
+                handle(e);
                 e.preventDefault();
                 e.stopPropagation();
             }
@@ -92,52 +92,52 @@ function interceptFocusedEvents(source, type, handle) {
     }, true);
 }
 function mouseMoved(e) {
-    user.set(keys.MOUSE_X, clientToGame_x(e.clientX));
-    user.set(keys.MOUSE_Y, clientToGame_y(e.clientY));
+    user.set(keys.MOUSE_X, clientToGameX(e.clientX));
+    user.set(keys.MOUSE_Y, clientToGameY(e.clientY));
 }
 function touchMoved(e) {
-    user.set(keys.MOUSE_X, clientToGame_x(e.touches[0].clientX));
-    user.set(keys.MOUSE_Y, clientToGame_y(e.touches[0].clientY));
+    user.set(keys.MOUSE_X, clientToGameX(e.touches[0].clientX));
+    user.set(keys.MOUSE_Y, clientToGameY(e.touches[0].clientY));
 }
-interceptEvents(window, "keydown", (e) => {
+interceptEvents(window, 'keydown', (e) => {
     user.press(keys.getKeyboardKey(e.keyCode));
 });
-interceptEvents(window, "keyup", (e) => {
+interceptEvents(window, 'keyup', (e) => {
     user.release(keys.getKeyboardKey(e.keyCode));
 });
-interceptFocusedEvents(gameDiv, "mousedown", (e) => {
+interceptFocusedEvents(gameDiv, 'mousedown', (e) => {
     mouseMoved(e);
     user.press(keys.getMouseKey(e.button));
 });
-interceptFocusedEvents(window, "mouseup", (e) => {
+interceptFocusedEvents(window, 'mouseup', (e) => {
     mouseMoved(e);
     user.release(keys.getMouseKey(e.button));
 });
-interceptEvents(window, "mousewheel", (e) => {
+interceptEvents(window, 'mousewheel', (e) => {
     mouseMoved(e);
     user.set(keys.WHEEL_X, e.deltaX);
     user.set(keys.WHEEL_Y, e.deltaY);
 });
-interceptEvents(window, "DOMMouseScroll", (e) => {
-    mosueMoved(e);
-    userInput.set(keys.WHEEL_Y, -e.detail);
+interceptEvents(window, 'DOMMouseScroll', (e) => {
+    mouseMoved(e);
+    user.set(keys.WHEEL_Y, -e.detail);
 });
-interceptEvents(document, "mousemove", mouseMoved);
-interceptEvents(gameDiv, "touchstart", (e) => {
+interceptEvents(document, 'mousemove', mouseMoved);
+interceptEvents(gameDiv, 'touchstart', (e) => {
     touchMoved(e);
     user.press(keys.getMouseKey(0));
 });
-interceptEvents(gameDiv, "touchend", (e) => {
+interceptEvents(gameDiv, 'touchend', (e) => {
     touchMoved(e);
     user.release(keys.getMouseKey(0));
 });
-interceptEvents(gameDiv, "touchmove", touchMoved);
-interceptEvents(window, "blur", (e) => {
+interceptEvents(gameDiv, 'touchmove', touchMoved);
+interceptEvents(window, 'blur', (e__) => {
     user.releaseAll();
 });
 // not useful for TASing or the game
-interceptEvents(document, "mouseout", (e) => {});
-interceptEvents(window, "focus", (e) => {});
+interceptEvents(document, 'mouseout', (e__) => {});
+interceptEvents(window, 'focus', (e__) => {});
 
 
 //
@@ -148,10 +148,10 @@ interceptEvents(window, "focus", (e) => {});
 const numGamepadAxes = 4;
 const numGamepadButtons = 16;
 const gamepadKeys = [];
-for(let i = 0; i<numGamepadAxes; i++){
+for(let i = 0; i < numGamepadAxes; i += 1) {
     gamepadKeys.push(keys.getGamepadAxis(i));
 }
-for(let i = 0; i<numGamepadButtons; i++){
+for(let i = 0; i < numGamepadButtons; i += 1) {
     gamepadKeys.push(keys.getGamepadButton(i));
 }
 
@@ -164,7 +164,7 @@ function getGamepadKey(gamepad, key) {
 }
 
 export function pollGamepads() {
-    const connected = []
+    const connected = [];
     for(const gamepad of navigator.getGamepads()) {
         if(gamepad && gamepad.connected) {
             connected.push(gamepad);
@@ -191,13 +191,13 @@ export function pollGamepads() {
 //
 
 // allow injects while not in focus
-ig.input[Input.isFocusLost] = function() {
+ig.input[Input.isFocusLost] = function isFocusLost() {
     return false;
 };
 
 // clear any inputs that might be pressed during startup
-ig.input[Input.lastMouse].x = gameToClient_x(0);
-ig.input[Input.lastMouse].y = gameToClient_y(0);
+ig.input[Input.lastMouse].x = gameToClientX(0);
+ig.input[Input.lastMouse].y = gameToClientY(0);
 if(Input.mouseOut.exists) ig.input[Input.mouseOut] = false;
 ig.input[Input.locked] = {};
 ig.input[Input.pressed] = {};
@@ -215,23 +215,27 @@ fakeGamepad[Gamepad.axisThresholds][0] = 7849 / 32767; // Left Stick X
 fakeGamepad[Gamepad.axisThresholds][1] = 7849 / 32767; // Left Stick Y
 fakeGamepad[Gamepad.axisThresholds][2] = 8689 / 32767; // Right Stick X
 fakeGamepad[Gamepad.axisThresholds][3] = 8689 / 32767; // Right Stick Y
-ig[gamepads][Gamepads.gamepads] = {"html5Pad0": fakeGamepad}; // id does not matter, just reusing the default id
+ig[gamepads][Gamepads.gamepads] = {html5Pad0: fakeGamepad}; // id does not matter, just reusing the default id
 // replace gamepad plugins
-ig[gamepads][Gamepads.plugins] = [{"update": (gamepads) => {
-    for(let i=0;i<buttonsToSet.length; i++) {
-        fakeGamepad[Gamepad.setButton](i, buttonsToSet[i]);
-    }
-    for(let i=0;i<axesToSet.length; i++) {
-        fakeGamepad[Gamepad.setAxis](i, axesToSet[i]);
-    }
-}}];
+ig[gamepads][Gamepads.plugins] = [
+    {
+        update: (gamepads__) => {
+            for(let i = 0; i < buttonsToSet.length; i += 1) {
+                fakeGamepad[Gamepad.setButton](i, buttonsToSet[i]);
+            }
+            for(let i = 0; i < axesToSet.length; i += 1) {
+                fakeGamepad[Gamepad.setAxis](i, axesToSet[i]);
+            }
+        },
+    },
+];
 
 export const game = new keys.Input();
 
 export function inject() {
-    const clientX = gameToClient_x(game.get(keys.MOUSE_X));
-    const clientY = gameToClient_y(game.get(keys.MOUSE_Y));
-    document.dispatchEvent(new MouseEvent("mousemove", {clientX:clientX, clientY:clientY}));
+    const clientX = gameToClientX(game.get(keys.MOUSE_X));
+    const clientY = gameToClientY(game.get(keys.MOUSE_Y));
+    document.dispatchEvent(new MouseEvent('mousemove', {clientX, clientY}));
     for(const [key, value] of game.entries()) {
         switch(key.source) {
             case keys.INTERNAL:
@@ -244,31 +248,31 @@ export function inject() {
                         if(value === 0) {
                             // nothing
                         } else {
-                            window.dispatchEvent(new WheelEvent("mousewheel", {clientX:clientX, clientY:clientY, deltaY:value}));
+                            window.dispatchEvent(new WheelEvent('mousewheel', {clientX, clientY, deltaY: value}));
                         }
                         break;
                     case keys.WHEEL_X_CODE:
                         // nothing, game does not use wheel x
                         break;
                     default:
-                        console.warn("Attempting to inject unknown key "+key);
+                        console.warn(`Attempting to inject unknown key ${key}`);
                         break;
                 }
                 break;
             case keys.KEYBOARD:
                 if(game.isPressed(key)) {
-                    window.dispatchEvent(new KeyboardEvent("keydown", {keyCode:key.code}));
+                    window.dispatchEvent(new KeyboardEvent('keydown', {keyCode: key.code}));
                 }
                 if(game.isReleased(key)) {
-                    window.dispatchEvent(new KeyboardEvent("keyup", {keyCode:key.code}));
+                    window.dispatchEvent(new KeyboardEvent('keyup', {keyCode: key.code}));
                 }
                 break;
             case keys.MOUSE:
                 if(game.isPressed(key)) {
-                    gameDiv.dispatchEvent(new MouseEvent("mousedown", {clientX:clientX, clientY:clientY, button:key.code}));
+                    gameDiv.dispatchEvent(new MouseEvent('mousedown', {clientX, clientY, button: key.code}));
                 }
                 if(game.isReleased(key)) {
-                    window.dispatchEvent(new MouseEvent("mouseup", {clientX:clientX, clientY:clientY, button:key.code}));
+                    window.dispatchEvent(new MouseEvent('mouseup', {clientX, clientY, button: key.code}));
                 }
                 break;
             case keys.GAMEPAD_BUTTON:
@@ -278,7 +282,7 @@ export function inject() {
                 axesToSet[key.code] = value;
                 break;
             default:
-                console.warn("Attempting to inject unknown key "+key);
+                console.warn(`Attempting to inject unknown key ${key}`);
                 break;
         }
     }

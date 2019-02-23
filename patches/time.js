@@ -6,7 +6,7 @@ import {
     Event,
     EventStepBase,
     EventSteps,
-} from '../utils/defs.js'
+} from '../utils/defs.js';
 
 
 //
@@ -22,9 +22,9 @@ export function frames() {
     return frameCount;
 }
 
-export function setFrames(frames) {
-    frameCount = frames;
-    return ig[Timer].time = frames / FPS;
+export function setFrames(frames_) {
+    frameCount = frames_;
+    ig[Timer].time = frames_ / FPS;
 }
 
 // not replacing ig[Timer].step
@@ -34,12 +34,12 @@ export function step() {
         didFirstFrame = true;
         firstFrameFix();
     }
-    setFrames(frameCount+1);
+    setFrames(frameCount + 1);
 }
 
 // this needs to wait until the first intercepted frame
 // since the game will run a single frame between patching and intercepting
-function firstFrameFix(){
+function firstFrameFix() {
     // thankfully there is only a single timer instance during the intro
     const time = frameCount / FPS;
     ig[Timer].time = time;
@@ -64,18 +64,19 @@ export function now() {
 // which is also only used for Jet's tutorial on the M.S. Solar
 //
 
-ig[EventSteps].SET_VAR_TIME.prototype.start = function() {
+ig[EventSteps].SET_VAR_TIME.prototype.start = function start() {
     const v = ig[Event][Event.getVarName](this[EventStepBase.varName]);
     if(v) {
         ig.vars.set(v, gameNow() * 1000);
     } else {
-        ig.log("SET_VAR_TIME: Variable Name is not a String!");
+        ig.log('SET_VAR_TIME: Variable Name is not a String!');
     }
-}
+};
 
 
 //
 // recover state from reload
 //
 
-reload.serde("frame", frames, (f)=>{frameCount=f;});
+// this deserialize is not setFrames as `ig[Timer].time` (and others) will be corrected in firstFrameFix
+reload.serde('frame', frames, (f) => {frameCount = f;});

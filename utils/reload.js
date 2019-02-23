@@ -8,7 +8,7 @@ const deserializers = {};
 
 document.body.addEventListener('modsLoaded', () => {
     restartButton.addListener(() => {
-        const state = {}
+        const state = {};
         for(const key in serializers) {
             state[key] = serializers[key]();
         }
@@ -35,7 +35,7 @@ export function recover() {
 
 export function serde(key, serializer, deserializer) {
     if(key in serializers) {
-        throw new Error("Reload key "+key+" is already taken");
+        throw new Error(`Reload key ${key} is already taken`);
     }
     serializers[key] = serializer;
     deserializers[key] = deserializer;

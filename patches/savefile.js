@@ -7,7 +7,7 @@ import {
     StorageListener,
     Storage,
     storage,
-    CryptUtils
+    CryptUtils,
 } from '../utils/defs.js';
 
 
@@ -20,13 +20,13 @@ function getData(globals) {
         lastSlot: ig[storage][Storage.lastSlot],
         slots: slots,
         autoSlot: ig[storage][Storage.autoSlot] ? ig[storage][Storage.autoSlot].src : null,
-        globals: ig[CryptUtils][CryptUtils.encrypt](globals)
+        globals: ig[CryptUtils][CryptUtils.encrypt](globals),
     };
 }
 
 function getGlobals() {
     const globals = {};
-    for (const listener of ig[storage][Storage.listeners]) {
+    for(const listener of ig[storage][Storage.listeners]) {
         if(listener[StorageListener.update]) listener[StorageListener.update](globals);
     }
     return globals;
@@ -34,7 +34,7 @@ function getGlobals() {
 
 
 // disable default writing to disk because we write to the movie file instead
-ig[storage][Storage.writeToDisk] = function(){};
+ig[storage][Storage.writeToDisk] = function writeToDisk() {};
 
 // allow writing globals to disk on request
 const userSave = getData({});
@@ -74,7 +74,7 @@ function _setSaveFileData(data, filter) {
     } else {
         ig[storage][Storage.autoSlot] = null;
     }
-    
+
     // globals
     let globals = ig[CryptUtils][CryptUtils.decrypt](data.globals);
     if(filter) {
@@ -83,14 +83,14 @@ function _setSaveFileData(data, filter) {
             if(option in globals.options) {
                 filtered[option] = globals.options[option];
             } else {
-                console.warn("Option '"+option+"' does not exist.");
+                console.warn(`Option '${option}' does not exist.`);
             }
         }
         // drop achievements, they should not matter...
-        globals = {options:filtered}
+        globals = {options: filtered};
     }
     globals = ig.merge(ig[storage][Storage.globals], globals);
-    for (const listener of ig[storage][Storage.listeners]) {
+    for(const listener of ig[storage][Storage.listeners]) {
         if(listener[StorageListener.apply]) listener[StorageListener.apply](globals);
     }
 }
@@ -107,9 +107,9 @@ function restoreSaveFileData(data) {
 
 // fix Storage.getSlotSrc to be able to properly show errors when there is no auto save
 // TODO this should be moved into a mod on its own (ideally ccloader or simplify)
-ig[storage][Storage.getSlotSrc] = function(slot, extra) {
-    let save;
-    if(slot == -1) {
+ig[storage][Storage.getSlotSrc] = function getSlotSrc(slot, extra) {
+    let save = null;
+    if(slot === -1) {
         save = this[Storage.autoSlot];
     } else {
         save = this[Storage.slots][slot];
@@ -121,13 +121,13 @@ ig[storage][Storage.getSlotSrc] = function(slot, extra) {
         }
         return ig[CryptUtils][CryptUtils.encrypt](data);
     } else {
-        return "";
+        return '';
     }
-}
+};
 
 
 //
 // recover state from reload
 //
 
-reload.serde("save", getSaveFileData, restoreSaveFileData);
+reload.serde('save', getSaveFileData, restoreSaveFileData);

@@ -1,6 +1,4 @@
 // root of TAS mod to get everything setup
-if(!cc) throw new Error("No ModLoader Found!");
-
 import {loadJsonAsset, loadJsonFile} from './utils/loader.js';
 import * as keys from './utils/keys.js';
 import * as reload from './utils/reload.js';
@@ -9,7 +7,7 @@ import * as time from './patches/time.js';
 import * as inputs from './patches/inputs.js';
 import * as mainloop from './patches/mainloop.js';
 import * as random from './patches/random.js';
-import * as savefile from './patches/savefile.js'
+import * as savefile from './patches/savefile.js';
 // import './patches/cursor.js'; // (patch Kva and draw cursor ingame)
 
 // util for showing an error from a Promise
@@ -30,47 +28,47 @@ class ActionVals {
         this._prev = 0;
         this._val = 0;
     }
-    
+
     set prev(value) {
         if(Math.abs(value) > Math.abs(this._prev)) {
             this._prev = value;
         }
     }
-    
+
     set value(value) {
         if(Math.abs(value) > Math.abs(this._val)) {
             this._val = value;
         }
     }
-    
+
     get prev() {
         return this._prev;
     }
-    
+
     get value() {
         return this._val;
     }
-    
+
     get isPrevUp() {
         return Math.abs(this._prev) < keys.THRESHOLD;
     }
-    
+
     get isPrevDown() {
         return !this.isPrevUp;
     }
-    
+
     get isUp() {
         return Math.abs(this._val) < keys.THRESHOLD;
     }
-    
+
     get isDown() {
         return !this.isUp;
     }
-    
+
     get isPressed() {
         return this.isDown && this.isPrevUp;
     }
-    
+
     get isReleased() {
         return this.isUp && this.isPrevDown;
     }
@@ -82,10 +80,10 @@ class KeyMap {
         this._actionToKeys = new Map(); // map from action to Set of Keys
         this.remapKeys = remapKeys;
     }
-    
+
     getActions() {
         const actions = new Map();
-        for(const [key, value] of inputs.user.entries()) {
+        for(const key of inputs.user.keys()) {
             if(key.canDerive) {
                 const posAction = this.getKeyAction(key.withSign(1));
                 const negAction = this.getKeyAction(key.withSign(-1));
@@ -111,7 +109,7 @@ class KeyMap {
             vals.prev = inputs.user.getPrev(key);
         }
     }
-    
+
     removeKey(key) {
         const oldAction = this._keyToAction.get(key);
         this._keyToAction.delete(key);
@@ -120,7 +118,7 @@ class KeyMap {
             oldActionKeys.delete(key);
         }
     }
-    
+
     setKeyAction(key, action) {
         if(key.isDerived) {
             this.removeKey(key.source);
@@ -129,16 +127,16 @@ class KeyMap {
             this.removeKey(key.withSign(-1));
         }
         this.removeKey(key);
-        
+
         this._keyToAction.set(key, action);
-        let keys = this._actionToKeys.get(action);
-        if(!keys) {
-            keys = new Set();
-            this._actionToKeys.set(action, keys);
+        let keys_ = this._actionToKeys.get(action);
+        if(!keys_) {
+            keys_ = new Set();
+            this._actionToKeys.set(action, keys_);
         }
-        keys.add(key);
+        keys_.add(key);
     }
-    
+
     getKeyAction(key) {
         let action = this._keyToAction.get(key);
         if(!action && !key.isDerived && this.remapKeys) {
@@ -151,15 +149,15 @@ class KeyMap {
         }
         return action;
     }
-    
+
     getConfig() {
         const config = {};
-        for(const [action, keys] of this._actionToKeys.entries()) {
+        for(const [action, keys_] of this._actionToKeys.entries()) {
             const name = action.name || action; // action is either a Key or a String
-            let val = "";
-            for(const key of keys) {
-                if(val !== "") {
-                    val += ",";
+            let val = '';
+            for(const key of keys_) {
+                if(val !== '') {
+                    val += ',';
                 }
                 val += key.name;
             }
@@ -167,7 +165,7 @@ class KeyMap {
         }
         return config;
     }
-    
+
     setConfig(config) {
         this._keyToAction.clear();
         this._actionToKeys.clear();
@@ -187,29 +185,29 @@ class KeyMap {
 class TAS {
     constructor() {
         // config
-        this.movieFile = "";
-        this.mode = "setup";
+        this.movieFile = '';
+        this.mode = 'setup';
         this.keyboardMouseSpeed = 1;
         this._menuKeys = new KeyMap(false);
         this._gameKeys = new KeyMap(true);
-        
+
         // state
         this._doneLoading = false;
         this._inMenu = false;
-        
+
         // movie
         this._versions = {};
         this._rng = null;
         this._saveFile = null;
         this._inputs = [];
     }
-    
+
     // finish initialization
     // assumes that _verions, and _inputs are already set
     setConfig(config) {
         this._rng = random.getState();
         this._saveFile = savefile.getStartupSaveFileData();
-        
+
         this.movieFile = config.movie;
         this.mode = config.mode;
         this.speed = config.speed;
@@ -217,7 +215,7 @@ class TAS {
         this._menuKeys.setConfig(config.menu);
         this._gameKeys.setConfig(config.game);
     }
-    
+
     getConfig() {
         return {
             movie: this.movieFile,
@@ -225,44 +223,44 @@ class TAS {
             speed: this.speed,
             paused: this.paused,
             menu: this._menuKeys.getConfig(),
-            game: this._gameKeys.getConfig()
+            game: this._gameKeys.getConfig(),
         };
     }
-    
+
     getMovie() {
         return {
             versions: this._versions,
             rng: this._rng,
             saveFile: this._saveFile,
             inputs: this._inputs,
-        }
+        };
     }
-    
+
     // TODO this is very similar to setConfig
     serialize() {
-        return  {
+        return {
             // movie
             initialRng: this._rng,
             initialSave: this._saveFile,
             inputs: this._inputs,
-            
+
             // config
             movie: this.movieFile,
             mode: this.mode,
             speed: this.speed,
             paused: this.paused,
             menuKeys: this._menuKeys.getConfig(),
-            gameKeys: this._gameKeys.getConfig()
+            gameKeys: this._gameKeys.getConfig(),
         };
     }
-    
+
     deserialize(state) {
         // movie
         // this._versions is recomputed on startup
         this._rng = state.initialRng;
         this._saveFile = state.initialSave;
         this._inputs = state.inputs;
-        
+
         // config
         this.movieFile = state.movie;
         this.mode = state.mode;
@@ -271,11 +269,11 @@ class TAS {
         this._menuKeys.setConfig(state.menuKeys);
         this._gameKeys.setConfig(state.gameKeys);
     }
-    
+
     isDoneLoading() {
         return this._doneLoading;
     }
-    
+
     setKey(key, value) {
         inputs.game.set(keys.getKey(key), value);
     }
@@ -285,7 +283,7 @@ class TAS {
     releaseKey(key) {
         inputs.game.release(keys.getKey(key));
     }
-    
+
     get speed() {
         return mainloop.framesPerUpdate;
     }
@@ -311,29 +309,30 @@ class TAS {
     step() {
         mainloop.pause(1);
     }
-    
-    getNumRngCalls(reset=false) {
+
+    getNumRngCalls(reset = false) {
         return random.getNumCalls(reset);
     }
-};
-window.tas = new TAS();
+}
+
+window.tas = new TAS(); /* global tas */
 
 const gameActions = {
-    "speedUp": () => {
-        tas.speed = tas.speed*2;
+    speedUp: () => {
+        tas.speed *= 2;
     },
-    "speedDown": () => {
-        tas.speed = tas.speed/2;
+    speedDown: () => {
+        tas.speed /= 2;
     },
-    "pause": () => {
+    pause: () => {
         tas.paused = !tas.paused;
     },
-    "step": () => {
+    step: () => {
         tas.step();
     },
-    "restart": () => {
+    restart: () => {
         reload.reload();
-    }
+    },
 };
 
 mainloop.preUpdate.add(() => {
@@ -361,7 +360,7 @@ mainloop.preUpdate.add(() => {
 
 // put the config (and movie) into reload storage so they dont have to be saved to disk
 // alternativly reload will need a mechanism to wait on saving the movie file to disk
-reload.serde("config", tas.serialize.bind(tas), tas.deserialize.bind(tas));
+reload.serde('config', tas.serialize.bind(tas), tas.deserialize.bind(tas));
 
 
 //
@@ -374,7 +373,7 @@ async function loadEverything() {
     for(const name in keysNames) {
         keys.getKey(keysNames[name]).name = name;
     }
-    
+
     // load compatability
     const compatability = await loadJsonAsset('assets/compatability.json');
     const modInfos = {
@@ -384,16 +383,17 @@ async function loadEverything() {
     for(const mod of activeMods) {
         // aparently ccloader does not require mods to specify a version
         // so normalize undefined with "" to make validating easier
-        modInfos[mod.name] = {installed:mod.version||"", enabled:true};
+        modInfos[mod.name] = {installed: mod.version || '', enabled: true};
     }
     for(const mod of inactiveMods) {
-        modInfos[mod.name] = {installed:mod.version||""};
+        modInfos[mod.name] = {installed: mod.version || ''};
     }
     for(const modName in compatability) {
         const modCompat = compatability[modName];
         let modInfo = modInfos[modName];
         if(!modInfo) {
-            modInfo = modInfos[modName] = {};
+            modInfo = {};
+            modInfos[modName] = modInfo;
         }
         modInfo.known = true;
         if(modInfo.enabled && modCompat.options) {
@@ -404,56 +404,57 @@ async function loadEverything() {
         }
     }
     for(const modName in modInfos) {
-        const modInfo = modInfos[modName]
+        const modInfo = modInfos[modName];
         if(modInfo.enabled && !modInfo.ignore) {
             tas._versions[modName] = modInfo.version;
         }
     }
-    
+
     // TODO code flow of reloading vs startup is a bit confusing
     // because they need to end up in effectivly the same state
     // but data is stored quite differently
     if(!reload.recover()) {
         // load config
         const config = await loadJsonAsset('config.json');
-        
+
         // load movie
         if(config.movie) {
             const movie = await loadJsonFile(config.movie);
-            
+
             // check compatability
             // TODO should this (or something similar) happen during reload.recover as well?
             for(const modName in movie.versions) {
                 let modInfo = modInfos[modName];
                 if(!modInfo) {
-                    modInfo = modInfos[modName] = {};
+                    modInfo = {};
+                    modInfos[modName] = modInfo;
                 }
                 modInfo.expected = movie.versions[modName];
             }
             // TODO make warn into prompts
             // TODO add compatability option for looser version checks (specifically for TAS, which may just get handled specally)
             for(const modName in modInfos) {
-                let modInfo = modInfos[modName];
+                const modInfo = modInfos[modName];
                 if(modInfo.ignore) continue;
                 if(!modInfo.known) {
-                    console.warn('Unknown mod '+modName+' add an entry to assets/compatability.json to specify its compatability');
+                    console.warn(`Unknown mod ${modName} add an entry to assets/compatability.json to specify its compatability`);
                 }
-                const correctEnabled = (modInfo.expected !== undefined) === (modInfo.enabled||false);
+                const correctEnabled = (modInfo.expected !== undefined) === (modInfo.enabled || false);
                 const correctVersion = modInfo.expected === modInfo.installed;
                 if(!correctVersion) {
-                    console.warn('TAS is expecting '+modName+' version '+modInfo.expected+' but version '+modInfo.installed+' is installed');
+                    console.warn(`TAS is expecting ${modName} version ${modInfo.expected} but version ${modInfo.installed} is installed`);
                 }
                 if(!correctEnabled) {
-                    console.warn('TAS is expecting '+modName+' to be '+(modInfo.enabled?'disabled':'enabled'));
+                    console.warn(`TAS is expecting ${modName} to be ${modInfo.enabled ? 'disabled' : 'enabled'}`);
                 }
             }
-            
+
             // apply movie state
             random.setState(movie.rng);
             savefile.setSaveFileData(movie.save);
             tas._inputs = movie._inputs;
         }
-        
+
         // apply config
         tas.setConfig(config);
     }
