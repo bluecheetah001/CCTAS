@@ -1,6 +1,7 @@
 // patch for save file for easy access to save file data and to keep TAS saves from overwriting user saves
 
 import * as reload from '../utils/reload.js';
+import * as compatability from '../utils/compatability.js';
 
 import {
     SaveSlot,
@@ -57,11 +58,6 @@ export function getStartupSaveFileData() {
     return _getSaveFileData(true);
 }
 
-const whiteList = [];
-export function whiteListOptions(options) {
-    whiteList.push(...options);
-}
-
 function _setSaveFileData(data, filter) {
     // save slots
     ig[storage][Storage.lastSlot] = data.lastSlot;
@@ -79,7 +75,7 @@ function _setSaveFileData(data, filter) {
     let globals = ig[CryptUtils][CryptUtils.decrypt](data.globals);
     if(filter) {
         const filtered = {};
-        for(const option of whiteList) {
+        for(const option of compatability.optionsWhiteList) {
             if(option in globals.options) {
                 filtered[option] = globals.options[option];
             } else {

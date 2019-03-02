@@ -22,6 +22,9 @@
     },
     "TAS": {
     },
+    "Restart Button": {
+        "ignore": true
+    },
     "Simplify": {
         "ignore": true
     },

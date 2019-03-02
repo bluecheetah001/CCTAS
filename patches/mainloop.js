@@ -2,6 +2,7 @@
 // also add features like frame advance
 
 import * as keys from '../utils/keys.js';
+import * as config from '../utils/config.js';
 import Notifier from '../utils/notifier.js';
 
 import * as inputs from '../patches/inputs.js';
@@ -21,24 +22,7 @@ import {
 
 const MAX_UPDATE_TIME = 1 / 20;
 
-export let framesPerUpdate = 0;
-export let pauseOnFrame = 0;
 let framesToRun = 0;
-
-export function setFramesPerUpdate(count) {
-    const delta = count - framesPerUpdate;
-    framesPerUpdate = count;
-    framesToRun = Math.max(0, framesToRun + delta);
-}
-export function pauseOn(frame) {
-    pauseOnFrame = frame;
-}
-export function pause(offset = 0) {
-    pauseOnFrame = time.frames() + offset;
-}
-export function unpause() {
-    pauseOnFrame = Infinity;
-}
 
 export const preUpdate = new Notifier();
 export const postFrame = new Notifier();
@@ -61,11 +45,11 @@ ig.system[run] = function update() {
 
         preUpdate.fire();
 
-        framesToRun += framesPerUpdate;
+        framesToRun += config.framesPerUpdate;
         while(framesToRun >= 1) {
             if(canRunGame // mod fully loaded
                 && ig.ready // game is not loading
-                && time.frames() < pauseOnFrame // tas is not paused
+                && time.frames() < config.pauseOnFrame // tas is not paused
                 && time.now() - start < MAX_UPDATE_TIME // more time left in the update cycle
             ) {
                 framesToRun -= 1;

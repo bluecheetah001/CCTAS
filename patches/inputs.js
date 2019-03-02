@@ -127,6 +127,10 @@ interceptEvents(gameDiv, 'touchstart', (e) => {
     touchMoved(e);
     user.press(keys.getMouseKey(0));
 });
+interceptEvents(document, 'mouseout', (e__) => {
+    user.release(keys.MOUSE_X);
+    user.release(keys.MOUSE_Y);
+});
 interceptEvents(gameDiv, 'touchend', (e) => {
     touchMoved(e);
     user.release(keys.getMouseKey(0));
@@ -136,7 +140,6 @@ interceptEvents(window, 'blur', (e__) => {
     user.releaseAll();
 });
 // not useful for TASing or the game
-interceptEvents(document, 'mouseout', (e__) => {});
 interceptEvents(window, 'focus', (e__) => {});
 
 

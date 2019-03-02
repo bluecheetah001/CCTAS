@@ -3,7 +3,8 @@
     "mode": "setup",
     "keyboardMouseSpeed": 1,
     "speed": 1,
-    "paused": false,
+    "pauseOn": false,
+    "inMenu": false,
     "menu": {
         "closeMenu": "F1",
         "up": "W,UP",
@@ -21,16 +22,13 @@
         "speedDown": "SUBTRACT",
         "pause": "DECIMAL",
         "step": "NUMPAD_0",
-        
         "keyboardMouse": "M",
         "mouseLeft": "LEFT",
         "mouseRight": "RIGHT",
         "mouseUp": "UP",
         "mouseDown": "DOWN",
-        
         "toggle": "CTRL",
         "pressAndRelease": "ALT",
-        
         "restart": "F4"
     }
 }

@@ -1,6 +1,14 @@
 // TODO axis limits?
 // TODO dead zones?
 
+import * as files from '../utils/files.js';
+
+export async function load() {
+    const keysNames = await files.loadJsonLocal('assets/keys.json');
+    for(const name in keysNames) {
+        getKey(keysNames[name]).name = name;
+    }
+}
 
 //
 // Keys
