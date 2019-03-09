@@ -50,6 +50,12 @@ const gameActions = {
     },
 };
 
+function isAnalogue(key) {
+    return key === keys.MOUSE_X
+        || key === keys.MOUSE_Y
+        || key.source === keys.GAMEPAD_AXIS;
+}
+
 mainloop.preUpdate.add(() => {
     const actions = getActions(config.gameKeys);
     for(const [action, vals] of actions.entries()) {
@@ -59,8 +65,8 @@ mainloop.preUpdate.add(() => {
                 func();
             }
         } else if(keys.isKey(action)) {
-            if(config.mode === config.RECORD) {
-                if(action === keys.MOUSE_X || action === keys.MOUSE_Y) {
+            if(config.mode !== config.PLAY) {
+                if(isAnalogue(action)) {
                     inputs.game.set(action, vals.value);
                 } else {
                     inputs.game.setMax(action, vals.value);
@@ -104,13 +110,15 @@ class ActionVals {
     }
 
     set prev(value) {
-        if(Math.abs(value) > Math.abs(this._prev)) {
+        if(Math.abs(value) > Math.abs(this._prev)
+                && Math.abs(value) > keys.THRESHOLD) {
             this._prev = value;
         }
     }
 
     set value(value) {
-        if(Math.abs(value) > Math.abs(this._val)) {
+        if(Math.abs(value) > Math.abs(this._val)
+                && Math.abs(value) > keys.THRESHOLD) {
             this._val = value;
         }
     }
@@ -194,20 +202,36 @@ class TAS {
     }
 
     setKey(key, value) {
-        if(config.mode === config.RECORD) {
+        if(config.mode !== config.PLAY) {
             inputs.game.set(keys.getKey(key), value);
         }
     }
     pressKey(key) {
-        if(config.mode === config.RECORD) {
+        if(config.mode !== config.PLAY) {
             inputs.game.press(keys.getKey(key));
         }
     }
     releaseKey(key) {
-        if(config.mode === config.RECORD) {
+        if(config.mode !== config.PLAY) {
             inputs.game.release(keys.getKey(key));
         }
     }
+    releaseAll() {
+        inputs.game.releaseAll();
+    }
+    getKey(key) {
+        inputs.get.get(keys.getKey(key));
+    }
+    get nextInputs() {
+        const obj = {};
+        for(const [key, value] of inputs.game.entries()) {
+            if(value !== 0) {
+                obj[key.name] = value;
+            }
+        }
+        return obj;
+    }
+
     get inputs() {
         return movie.getInputs();
     }
