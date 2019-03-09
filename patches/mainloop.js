@@ -11,6 +11,7 @@ import * as time from '../patches/time.js';
 import {
     run,
     Timer,
+    Game,
     System,
     sound,
     WebAudio,
@@ -33,7 +34,6 @@ export function startGame() {
     canRunGame = true;
 }
 
-
 // TODO this does not intercept on the same frame every time
 // so the first thing that any TAS would need to do is skip the intro to resync it
 // and hopefully loading mods is never so slow that the intro advances on its own before interception
@@ -49,6 +49,7 @@ ig.system[run] = function update() {
         while(framesToRun >= 1) {
             if(canRunGame // mod fully loaded
                 && ig.ready // game is not loading
+                && (ig.system.delegate[Game.preloadTimer] <= 0 || ig.system.delegate[Game.preloadMap] !== null) // game is not preloading
                 && time.frames() < config.pauseOnFrame // tas is not paused
                 && time.now() - start < MAX_UPDATE_TIME // more time left in the update cycle
             ) {

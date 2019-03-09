@@ -78,6 +78,23 @@ export const EventSteps = def({
 });
 
 
+// impact.base.game
+export const Game = def({
+    preloadTimer: {
+        // compared against 0 in Game.update
+        'v1.0.0-10': 'Ix',
+        'v1.0.1-1': 'Kx',
+        'v1.0.2-2': 'Ox',
+    },
+    preloadMap: {
+        // in the "LOADING MAP: " function, this is where the ajax result is stored
+        'v1.0.0-10': 'rla',
+        'v1.0.1-1': 'Jla',
+        'v1.0.2-2': 'Rla',
+    },
+});
+
+
 // impact.base.input
 export const Input = def({
     // singleton instance is constructed with the nice name ig.input
