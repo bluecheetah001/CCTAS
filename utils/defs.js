@@ -212,6 +212,18 @@ export const System = def({
         'v1.0.1-1': 'Wn',
         'v1.0.2-2': 'Yn',
     },
+    cursorType: {
+        // conditionally is added to "cursorSize" string
+        'v1.0.0-10': 'vna',
+        'v1.0.1-1': 'tca',
+        'v1.0.2-2': 'Aca',
+    },
+    updateCursorClass: {
+        // has the string "curosrSize"
+        'v1.0.0-10': 'KOa',
+        'v1.0.1-1': 'Kva',
+        'v1.0.2-2': 'Qva',
+    },
 });
 export const sound = def({
     // used in System.run as ig.system.sound.context.offset = ...

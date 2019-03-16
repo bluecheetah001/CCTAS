@@ -3,29 +3,16 @@ import * as keys from './utils/keys.js';
 import * as reload from './utils/reload.js';
 import * as compatability from './utils/compatability.js';
 import * as config from './utils/config.js';
+import {showError} from './utils/misc.js';
 
 import * as inputs from './patches/inputs.js';
 import * as mainloop from './patches/mainloop.js';
 import * as random from './patches/random.js';
 import './patches/savefile.js';
 import * as time from './patches/time.js';
-// import './patches/cursor.js'; // (patch Kva and draw cursor ingame)
+import './patches/cursor.js';
 
 import * as movie from './movie.js';
-
-
-// util for showing an error from a Promise
-function showError(e) {
-    try {
-        ig.system.error(e);
-    } catch(e2) {
-        // ig.system.error throws the given error, but this does not want to throw
-        if(e !== e2) {
-            // shouldn't happen, just being safe
-            throw e2;
-        }
-    }
-}
 
 
 const gameActions = {
