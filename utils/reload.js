@@ -1,36 +1,27 @@
-// util to ease recovering state across reloading
-
-// right now I am just dumping data to localStorage for simplicity
-// but if that is ever an issue then it should be pretty simple to move to making a save file
+// utils for serializing and deserializing save states
 
 const serializers = {};
 const deserializers = {};
 
-document.body.addEventListener('modsLoaded', () => {
-    restartButton.addListener(() => {
-        const state = {};
-        for(const key in serializers) {
-            state[key] = serializers[key]();
-        }
-        localStorage.tas = JSON.stringify(state);
-    });
-});
+export const MAIN_MENU = 'MAIN_MENU';
+export const LOAD_MAP = 'LOAD_MAP';
+export const RESTART = 'RESTART';
 
-export function reload() {
-    restartButton.restart(true);
-}
+export let lastSaveState = null;
 
-export function recover() {
-    if(localStorage.tas) {
-        const state = JSON.parse(localStorage.tas);
-        delete localStorage.tas;
-        for(const key in deserializers) {
-            deserializers[key](state[key]);
-        }
-        return true;
-    } else {
-        return false;
+export function serialize(hint) {
+    const state = {};
+    for(const key in serializers) {
+        state[key] = serializers[key](hint);
     }
+    lastSaveState = state;
+    return state;
+}
+export function deserialize(state) {
+    for(const key in deserializers) {
+        deserializers[key](state[key]);
+    }
+    lastSaveState = state;
 }
 
 export function serde(key, serializer, deserializer) {

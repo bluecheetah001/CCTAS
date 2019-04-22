@@ -78,5 +78,5 @@ ig[EventSteps].SET_VAR_TIME.prototype.start = function start() {
 // recover state from reload
 //
 
-// this deserialize is not setFrames as `ig[Timer].time` (and others) will be corrected in firstFrameFix
+// just set frameCount in deserialize, the next call to step() will set game time (to handle firstFrameFix)
 reload.serde('frame', frames, (f) => {frameCount = f;});

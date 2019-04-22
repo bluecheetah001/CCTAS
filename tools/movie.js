@@ -1,14 +1,14 @@
-import * as keys from './utils/keys.js';
-import * as config from './utils/config.js';
-import * as compatability from './utils/compatability.js';
-import * as reload from './utils/reload.js';
-import * as files from './utils/files.js';
+import * as keys from '../utils/keys.js';
+import * as config from '../utils/config.js';
+import * as compatability from '../utils/compatability.js';
+import * as reload from '../utils/reload.js';
+import * as files from '../utils/files.js';
 
-import * as inputs from './patches/inputs.js';
-import * as time from './patches/time.js';
-import * as random from './patches/random.js';
-import * as savefile from './patches/savefile.js';
-import * as mainloop from './patches/mainloop.js';
+import * as inputs from '../patches/inputs.js';
+import * as time from '../patches/time.js';
+import * as random from '../patches/random.js';
+import * as savefile from '../patches/savefile.js';
+import * as mainloop from '../patches/mainloop.js';
 
 export async function loadFile(fileName) {
     const movie = await files.loadJson(fileName);
@@ -125,18 +125,22 @@ function applyInputs() {
         }
     }
 }
-
-mainloop.postFrame.add(() => {
+mainloop.preFrame.add(() => {
     if(config.mode === config.PLAY) {
         applyInputs();
     }
+});
+mainloop.postFrame.add(() => {
     if(config.mode === config.RECORD) {
         recordPrevInputs();
     }
 });
 
-function serialize() {
-    // we wont hit postFrame if we are restarting
+function serialize(hint) {
+    // dont need to save anything unless we are restarting
+    if(hint !== reload.RESTART) return undefined;
+
+    // we wont hit postFrame when restarting
     // so record inputs before serializing
     if(config.mode === config.RECORD) {
         recordPrevInputs();
@@ -149,6 +153,8 @@ function serialize() {
     };
 }
 function deserialize(data) {
+    if(data === undefined) return;
+
     expectedVersions = data.versions;
     initialRng = data.rng;
     initialSave = data.save;
