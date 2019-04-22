@@ -4,9 +4,11 @@
 import * as keys from '../utils/keys.js';
 import * as config from '../utils/config.js';
 import Notifier from '../utils/notifier.js';
+import * as reload from '../utils/reload.js';
 
 import * as inputs from '../patches/inputs.js';
 import * as time from '../patches/time.js';
+import * as savestate from '../patches/savestate.js';
 
 import {
     run,
@@ -26,6 +28,7 @@ const MAX_UPDATE_TIME = 1 / 20;
 let framesToRun = 0;
 
 export const preUpdate = new Notifier();
+export const preFrame = new Notifier();
 export const postFrame = new Notifier();
 export const postUpdate = new Notifier();
 
@@ -33,6 +36,8 @@ let canRunGame = false;
 export function startGame() {
     canRunGame = true;
 }
+
+let isLongLoad = false;
 
 // TODO this does not intercept on the same frame every time
 // so the first thing that any TAS would need to do is skip the intro to resync it
@@ -55,6 +60,12 @@ ig.system[run] = function update() {
             ) {
                 framesToRun -= 1;
 
+                if(isLongLoad) {
+                    reload.serialize(reload.LOAD_MAP);
+                }
+
+                preFrame.fire();
+
                 inputs.inject();
 
                 // update time
@@ -74,6 +85,8 @@ ig.system[run] = function update() {
                 // update the game
                 // this ends up drawing multiple times when fastforwarding...
                 ig.system.delegate[run]();
+
+                isLongLoad = !ig.ready && ig.system[System.tickPause] <= .05;
 
                 postFrame.fire();
             } else {

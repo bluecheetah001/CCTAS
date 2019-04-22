@@ -1,9 +1,8 @@
 {
-    "movie": "",
-    "mode": "setup",
-    "keyboardMouseSpeed": 1,
+    "movie": "assets/mods/tas/notes/movie.json",
+    "mode": "play",
     "speed": 1,
-    "pauseOn": false,
+    "pauseOn": 1162,
     "inMenu": false,
     "menu": {
         "closeMenu": "F1",

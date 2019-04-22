@@ -11,8 +11,10 @@ import * as random from './patches/random.js';
 import './patches/savefile.js';
 import * as time from './patches/time.js';
 import './patches/cursor.js';
+import './patches/cache.js';
+import './patches/loadmap.js';
 
-import * as movie from './movie.js';
+import * as movie from './tools/movie.js';
 
 
 const gameActions = {
@@ -33,15 +35,9 @@ const gameActions = {
         config.setPauseOnFrame(time.frames() + 1);
     },
     restart: () => {
-        reload.reload();
+        restartButton.restart(true);
     },
 };
-
-function isAnalogue(key) {
-    return key === keys.MOUSE_X
-        || key === keys.MOUSE_Y
-        || key.source === keys.GAMEPAD_AXIS;
-}
 
 mainloop.preUpdate.add(() => {
     const actions = getActions(config.gameKeys);
@@ -53,11 +49,7 @@ mainloop.preUpdate.add(() => {
             }
         } else if(keys.isKey(action)) {
             if(config.mode !== config.PLAY) {
-                if(isAnalogue(action)) {
-                    inputs.game.set(action, vals.value);
-                } else {
-                    inputs.game.setMax(action, vals.value);
-                }
+                inputs.game.set(action, vals.value);
             }
         }
     }
@@ -150,6 +142,11 @@ class ActionVals {
 
 async function loadEverything() {
     try {
+        // save state on restarting
+        restartButton.addListener(() => {
+            localStorage.tas = JSON.stringify(reload.serialize(reload.RESTART));
+        });
+
         // load keys
         await keys.load();
 
@@ -159,7 +156,10 @@ async function loadEverything() {
         // TODO code flow of reloading vs startup is a bit confusing
         // because they need to end up in effectivly the same state
         // but data is stored quite differently
-        if(!reload.recover()) {
+        if(localStorage.tas) {
+            reload.deserialize(JSON.parse(localStorage.tas));
+            delete localStorage.tas;
+        } else {
             // load config
             await config.load();
 
@@ -174,7 +174,7 @@ async function loadEverything() {
         mainloop.startGame();
     }
 }
-loadEverything();
+document.body.addEventListener('modsLoaded', loadEverything);
 
 
 //
@@ -278,6 +278,13 @@ class TAS {
 
     restart() {
         reload.reload();
+    }
+
+    getLastSaveState() {
+        return reload.lastSaveState;
+    }
+    loadSaveState(saveState) {
+        reload.deserialize(saveState || reload.lastSaveState);
     }
 }
 

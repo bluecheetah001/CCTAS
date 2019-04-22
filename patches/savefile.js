@@ -11,18 +11,35 @@ import {
     CryptUtils,
 } from '../utils/defs.js';
 
+// difficult to recover after the map has finished loading
+// so just preemptivly serialize it before it gets overwritten
+let lastLoadingData = null;
+let lastCheckPoint = null;
+const origOnSaveLoaded = ig[storage].qx.bind(ig[storage]);
+ig[storage].qx = function onSaveLoaded(...args) {
+    // I think loadingData either deep equals checkPoint or is null...
+    lastLoadingData = ig[storage].sR;
+    lastCheckPoint = ig[storage].TF;
+    return origOnSaveLoaded(...args);
+};
 
-function getData(globals) {
+function getData(startupGlobals, includeSaveState) {
+    const globals = startupGlobals ? ig[storage][Storage.globals] : getGlobals();
     const slots = [];
     for(const slot of ig[storage][Storage.slots]) {
         slots.push(slot.src);
     }
-    return {
+    const data = {
         lastSlot: ig[storage][Storage.lastSlot],
         slots: slots,
         autoSlot: ig[storage][Storage.autoSlot] ? ig[storage][Storage.autoSlot].src : null,
         globals: ig[CryptUtils][CryptUtils.encrypt](globals),
     };
+    if(includeSaveState) {
+        data.loadingData = lastLoadingData;
+        data.checkPoint = lastCheckPoint;
+    }
+    return data;
 }
 
 function getGlobals() {
@@ -38,24 +55,19 @@ function getGlobals() {
 ig[storage][Storage.writeToDisk] = function writeToDisk() {};
 
 // allow writing globals to disk on request
-const userSave = getData({});
+const userSave = getData(true, false);
 export function writeGlobalsToDisk() {
     const globals = getGlobals();
     userSave.globals = ig[CryptUtils][CryptUtils.encrypt](globals);
     ig[storage].data.save(JSON.stringify(userSave));
 }
 
-function _getSaveFileData(startup) {
-    const globals = startup ? ig[storage][Storage.globals] : getGlobals();
-    return getData(globals);
-}
-
 export function getSaveFileData() {
-    return _getSaveFileData(false);
+    return getData(false, false);
 }
 
 export function getStartupSaveFileData() {
-    return _getSaveFileData(true);
+    return getData(true, false);
 }
 
 function _setSaveFileData(data, filter) {
@@ -89,16 +101,16 @@ function _setSaveFileData(data, filter) {
     for(const listener of ig[storage][Storage.listeners]) {
         if(listener[StorageListener.apply]) listener[StorageListener.apply](globals);
     }
+
+    // savestate
+    if('loadingData' in data) {
+        ig[storage].sR = data.loadingData;
+        ig[storage].TF = data.checkPoint;
+    }
 }
 
 export function setSaveFileData(data) {
     _setSaveFileData(data, true);
-}
-
-function restoreSaveFileData(data) {
-    // disabling the filtering maybe isn't necessary
-    // but I like that it makes sure nothing changes
-    _setSaveFileData(data, false);
 }
 
 // fix Storage.getSlotSrc to be able to properly show errors when there is no auto save
@@ -125,5 +137,14 @@ ig[storage][Storage.getSlotSrc] = function getSlotSrc(slot, extra) {
 //
 // recover state from reload
 //
+function serialize(hint) {
+    const includeCheckpoint = hint !== reload.RESTART;
+    return getData(false, includeCheckpoint);
+}
+function deserialize(data) {
+    // disabling the filtering maybe isn't necessary
+    // but I like that it makes sure nothing changes
+    _setSaveFileData(data, false);
+}
 
-reload.serde('save', getSaveFileData, restoreSaveFileData);
+reload.serde('save', serialize, deserialize);

@@ -126,7 +126,10 @@ export function save() {
     return files.saveJsonLocal('config.json', serialize(), true);
 }
 
-function serialize() {
+function serialize(hint) {
+    // dont need to save anything unless we are restarting
+    if(hint !== reload.RESTART) return undefined;
+
     return {
         movie: movieFile,
         mode: mode,
@@ -139,6 +142,8 @@ function serialize() {
 }
 
 function deserialize(config) {
+    if(config === undefined) return;
+
     setMovieFile(config.movie);
     setMode(config.mode);
     setFramesPerUpdate(config.speed);
