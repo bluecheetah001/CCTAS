@@ -8,7 +8,6 @@ import * as reload from '../utils/reload.js';
 
 import * as inputs from '../patches/inputs.js';
 import * as time from '../patches/time.js';
-import * as savestate from '../patches/savestate.js';
 
 import {
     run,
@@ -37,7 +36,10 @@ export function startGame() {
     canRunGame = true;
 }
 
-let isLongLoad = false;
+let justLoadedSaveState_ = false;
+export function justLoadedSaveState() {
+    justLoadedSaveState_ = true;
+}
 
 // TODO this does not intercept on the same frame every time
 // so the first thing that any TAS would need to do is skip the intro to resync it
@@ -60,7 +62,7 @@ ig.system[run] = function update() {
             ) {
                 framesToRun -= 1;
 
-                if(isLongLoad) {
+                if(willLoad()) {
                     reload.serialize(reload.LOAD_MAP);
                 }
 
@@ -86,8 +88,6 @@ ig.system[run] = function update() {
                 // this ends up drawing multiple times when fastforwarding...
                 ig.system.delegate[run]();
 
-                isLongLoad = !ig.ready && ig.system[System.tickPause] <= .05;
-
                 postFrame.fire();
             } else {
                 framesToRun = 0;
@@ -105,3 +105,25 @@ ig.system[run] = function update() {
         ig.system.error(e);
     }
 };
+
+function willLoad() {
+    if(justLoadedSaveState_) {
+        justLoadedSaveState_ = false;
+        return false;
+    }
+    if(ig.r.paused /* && !ig.Wv */) return false;
+    if(ig.r[Game.preloadTimer] <= 0) return false;
+
+    let tick = time.framesToSeconds(time.frames() + 1) - time.gameNow();
+    if(ig.system[System.isPaused]()) tick = 0;
+    if(ig.system[System.fastForward]) tick *= 8;
+    if(ig.r.Ix - tick > 0) return false;
+
+    tick = Math.min(0.05, tick);
+    if(ig.r.Ix - tick > 0) {
+        console.warn('Not creating save state due to fast forward');
+        return false;
+    }
+
+    return true;
+}

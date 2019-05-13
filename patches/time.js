@@ -18,13 +18,17 @@ const FPS = 60;
 let didFirstFrame = false;
 let frameCount = 0;
 
+export function framesToSeconds(frames_) {
+    return frames_ / FPS;
+}
+
 export function frames() {
     return frameCount;
 }
 
 export function setFrames(frames_) {
     frameCount = frames_;
-    ig[Timer].time = frames_ / FPS;
+    ig[Timer].time = framesToSeconds(frames_);
 }
 
 // not replacing ig[Timer].step
@@ -79,4 +83,7 @@ ig[EventSteps].SET_VAR_TIME.prototype.start = function start() {
 //
 
 // just set frameCount in deserialize, the next call to step() will set game time (to handle firstFrameFix)
-reload.serde('frame', frames, (f) => {frameCount = f;});
+reload.serde('frame', frames, (f) => {
+    frameCount = f;
+    didFirstFrame = false;
+});

@@ -11,18 +11,6 @@ import {
     CryptUtils,
 } from '../utils/defs.js';
 
-// difficult to recover after the map has finished loading
-// so just preemptivly serialize it before it gets overwritten
-let lastLoadingData = null;
-let lastCheckPoint = null;
-const origOnSaveLoaded = ig[storage].qx.bind(ig[storage]);
-ig[storage].qx = function onSaveLoaded(...args) {
-    // I think loadingData either deep equals checkPoint or is null...
-    lastLoadingData = ig[storage].sR;
-    lastCheckPoint = ig[storage].TF;
-    return origOnSaveLoaded(...args);
-};
-
 function getData(startupGlobals, includeSaveState) {
     const globals = startupGlobals ? ig[storage][Storage.globals] : getGlobals();
     const slots = [];
@@ -36,8 +24,8 @@ function getData(startupGlobals, includeSaveState) {
         globals: ig[CryptUtils][CryptUtils.encrypt](globals),
     };
     if(includeSaveState) {
-        data.loadingData = lastLoadingData;
-        data.checkPoint = lastCheckPoint;
+        data.currentSave = buildSave();
+        data.regen = ig[storage].uta;
     }
     return data;
 }
@@ -48,6 +36,12 @@ function getGlobals() {
         if(listener[StorageListener.update]) listener[StorageListener.update](globals);
     }
     return globals;
+}
+
+function buildSave() {
+    const save = {};
+    ig[storage].fXa(save, ig.r.uZ, ig.r.cOa && ig.r.cOa.kpa());
+    return save;
 }
 
 
@@ -103,9 +97,11 @@ function _setSaveFileData(data, filter) {
     }
 
     // savestate
-    if('loadingData' in data) {
-        ig[storage].sR = data.loadingData;
-        ig[storage].TF = data.checkPoint;
+    if(data.currentSave) {
+        // the game suggests useing ig.copy(data.currentSave), but that probably insn't necessary.
+        ig[storage].sR = data.currentSave;
+        ig[storage].TF = data.currentSave;
+        ig[storage].uta = data.regen;
     }
 }
 
@@ -138,7 +134,7 @@ ig[storage][Storage.getSlotSrc] = function getSlotSrc(slot, extra) {
 // recover state from reload
 //
 function serialize(hint) {
-    const includeCheckpoint = hint !== reload.RESTART;
+    const includeCheckpoint = hint === reload.LOAD_MAP;
     return getData(false, includeCheckpoint);
 }
 function deserialize(data) {
