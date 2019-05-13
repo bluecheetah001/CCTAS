@@ -66,12 +66,15 @@ const typeToConstructor = {
     Credit: Loadable(sc.cgb),
 };
 
+export function getCounts() {
+    return serialize(reload.LOAD_MAP);
+}
 
 function serialize(hint) {
     // no need to serialize cache when restarting
     if(hint === reload.RESTART) return undefined;
 
-    const cache = {};
+    const cacheCounts = {};
     for(const type in ig.KBa) {
         const igTypeCache = ig.KBa[type];
         const typeCache = {};
@@ -84,62 +87,84 @@ function serialize(hint) {
                 };
             }
         }
-        cache[type] = typeCache;
+        cacheCounts[type] = typeCache;
     }
-    return cache;
+    return cacheCounts;
 }
 
-function deserialize(cache) {
-    if(cache === undefined) return;
+function deserialize(cacheCounts) {
+    if(cacheCounts === undefined) return;
 
-    // populate cache
-    for(const type in cache) {
-        const typeCache = cache[type];
-        const igTypeCache = ig.KBa[type];
-        for(const key in typeCache) {
-            if(!igTypeCache[key]) {
-                typeToConstructor[type](key.split('|')).Tc();
-            }
-        }
+    if(ig.ready === false) {
+        throw new Error('Cannot deserialize cache while already loading');
+    }
+    if(ig.hn.length) {
+        console.warn('ig.toLoad had entries before loading save state');
     }
 
-    // TODO this may need to run after the map is loaded
-    // so we are in a compareable state to check refCounts
-
-    // theoretically this should only be changing the emptyCount
-    // but also checking refCount for debugging
+    // remove cache entries that should not exist
     for(const type in ig.KBa) {
         const igTypeCache = ig.KBa[type];
-        const typeCache = cache[type];
+        const typeCache = cacheCounts[type] || {};
         for(const key in igTypeCache) {
             const cached = igTypeCache[key];
             const counts = typeCache[key];
-            if(counts) {
-                if(cached) {
-                    if(cached.Lga !== counts.refCount) {
-                        console.log(`cache for ${type} ${key} expected ref=${counts.refCount} but was ${cached.Lga}`);
-                    } else {
-                        // TODO may need to +1 to survive a call to ig.w3()
-                        // or this part of deserialize needs to happen after ig.w3()
-                        cached.CDa = counts.emptyCount;
-                    }
+            if(!counts && cached) {
+                if(cached.Lga === 0) {
+                    if(cached.Wo) cached.Wo();
                 } else {
-                    throw new Error(`cache for ${type} ${key} did not get populated`);
+                    // remove cache key so it does not clear the actual cache when cleaning.
+                    // and enables immediate cleanup
+                    cached.kr = null;
                 }
-            } else {
-                if(cached) {
-                    if(cached.LGa !== 0) {
-                        console.log(`cache for ${type} ${key} expected ref=0 but was ${cached.Lga}`);
-                    } else {
-                        if(cached.Wo) cached.Wo();
-                        igTypeCache[key] = null;
-                    }
-                } else {
-                    // nothing to do
-                }
+                igTypeCache[key] = null;
             }
         }
     }
+
+    // populate cache
+    for(const type in cacheCounts) {
+        const typeCache = cacheCounts[type];
+        for(const key in typeCache) {
+            typeToConstructor[type](key.split('|')).Tc();
+        }
+    }
+
+    // reset cache empty count
+    for(const type in cacheCounts) {
+        const typeCache = cacheCounts[type];
+        const igTypeCache = ig.KBa[type];
+        for(const key in typeCache) {
+            igTypeCache[key].CDa = typeCache[key].emptyCount;
+        }
+    }
+
+    silentLoad();
+}
+
+function silentLoad() {
+    ig.ready = false;
+    // ig.Wv = true;
+    let loaded = 0;
+    let loading = 0;
+    function loadedCallback(type__, path__, status__) {
+        loaded += 1;
+        if(loading < ig.hn.length) {
+            console.warn('Loading save state did not fully populate cache?');
+        }
+        loadMore();
+    }
+    function loadMore() {
+        for(;loading < ig.hn.length; loading += 1) {
+            ig.hn[loading].load(loadedCallback);
+        }
+        if(loaded === loading) {
+            ig.hn.length = 0;
+            ig.ready = true;
+            // ig.Wv = false;
+        }
+    }
+    loadMore();
 }
 
 reload.serde('cache', serialize, deserialize);

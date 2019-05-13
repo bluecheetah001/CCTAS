@@ -6,24 +6,13 @@ import {
     storage,
 } from '../utils/defs.js';
 
-// TODO
-
-// difficult to recover after the map has finished loading
-// so just preemptivly serialize it before it gets overwritten
-let lastTeleportConfig = null;
-const origOnTeleportStart = ig.r.b8a.bind(ig.r);
-ig.r.b8a = function onTeleportStart(...args) {
-    lastTeleportConfig = ig.copy(this.$p);
-    return origOnTeleportStart(...args);
-};
-
 function serialize(hint) {
     // no need to serialize cache when restarting
     if(hint === reload.RESTART) return undefined;
     if(hint === reload.MAIN_MENU) return undefined;
 
     return {
-        teleportConfig: lastTeleportConfig,
+        teleportConfig: ig.copy(this.$p),
         // Mf
         prevMap: ig.r.T8a,
         currMap: ig.r.uZ,
@@ -38,7 +27,7 @@ function deserialize(data) {
     if(data === undefined) return;
 
     ig.merge(ig.r.$p, data.teleportConfig);
-    ig.r.$p.Zua = 0; // only used to set overlay timer, which we want to be complete
+    ig.r.$p.Zua = 0.01; // only used to set overlay timer, which we want to complete in a single frame
 
     // ig.r.Mf
     ig.r.T8a = data.prevMap;
@@ -46,8 +35,7 @@ function deserialize(data) {
     ig.r.If = data.position ? data.position.If : null;
     ig.r.cOa = data.position;
     ig.r.kia = true;
-    ig.r.b8a();
-    ig.r.Ix = 0;
+    ig.r.Ix = ig.r.b8a();
     ig.r.vi.clearQueue();
     for(const listener of ig.r.tf.Mf) {
         listener.RJa(data.currMap, data.position, data.hint);
@@ -61,15 +49,12 @@ function deserialize(data) {
         dataType: 'json',
         url: ig.dpa(b),
         success: (mapData) => {
-            ig.r.QHa(mapData);
-            // orig also sets a value to false that is never read
+            ig.r.rla = mapData;
         },
         error: (a, d, f) => {
             ig.system.error(new Error(`Loading of Map '${b}' failed: ${a} / ${d} / ${f}`));
         },
     });
-}
-function finishLoadingMap(mapData) {
 }
 
 reload.serde('map', serialize, deserialize);

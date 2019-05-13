@@ -11,7 +11,7 @@ import * as random from './patches/random.js';
 import './patches/savefile.js';
 import * as time from './patches/time.js';
 import './patches/cursor.js';
-import './patches/cache.js';
+import * as cache from './patches/cache.js';
 import './patches/loadmap.js';
 
 import * as movie from './tools/movie.js';
@@ -19,10 +19,10 @@ import * as movie from './tools/movie.js';
 
 const gameActions = {
     speedUp: () => {
-        config.setSpeed(config.speed * 2);
+        config.setFramesPerUpdate(config.speed * 2);
     },
     speedDown: () => {
-        config.setSpeed(config.speed / 2);
+        config.setFramesPerUpdate(config.speed / 2);
     },
     pause: () => {
         if(time.frames() < config.pauseOnFrame) {
@@ -265,6 +265,9 @@ class TAS {
     getNumRngCalls(reset = false) {
         return random.getNumCalls(reset);
     }
+    getCacheCounts() {
+        return cache.getCounts();
+    }
 
     save(finishSetup = false) {
         if(finishSetup && config.mode !== config.SETUP) {
@@ -284,7 +287,12 @@ class TAS {
         return reload.lastSaveState;
     }
     loadSaveState(saveState) {
+        if(ig.ready === false) {
+            console.log('Cannot load save state while already loading');
+            return;
+        }
         reload.deserialize(saveState || reload.lastSaveState);
+        mainloop.justLoadedSaveState();
     }
 }
 
