@@ -36,11 +36,6 @@ export function startGame() {
     canRunGame = true;
 }
 
-let justLoadedSaveState_ = false;
-export function justLoadedSaveState() {
-    justLoadedSaveState_ = true;
-}
-
 // TODO this does not intercept on the same frame every time
 // so the first thing that any TAS would need to do is skip the intro to resync it
 // and hopefully loading mods is never so slow that the intro advances on its own before interception
@@ -61,10 +56,6 @@ ig.system[run] = function update() {
                 && time.now() - start < MAX_UPDATE_TIME // more time left in the update cycle
             ) {
                 framesToRun -= 1;
-
-                if(willLoad()) {
-                    reload.serialize(reload.LOAD_MAP);
-                }
 
                 preFrame.fire();
 
@@ -89,6 +80,10 @@ ig.system[run] = function update() {
                 ig.system.delegate[run]();
 
                 postFrame.fire();
+
+                if(willLoad()) {
+                    reload.serialize(reload.LOAD_MAP);
+                }
             } else {
                 framesToRun = 0;
             }
@@ -107,10 +102,6 @@ ig.system[run] = function update() {
 };
 
 function willLoad() {
-    if(justLoadedSaveState_) {
-        justLoadedSaveState_ = false;
-        return false;
-    }
     if(ig.r.paused /* && !ig.Wv */) return false;
     if(ig.r[Game.preloadTimer] <= 0) return false;
 

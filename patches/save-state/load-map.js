@@ -1,10 +1,10 @@
 // patch to load the map when loading a savestate
 
-import * as reload from '../utils/reload.js';
+import * as reload from '../../utils/reload.js';
 
 import {
     storage,
-} from '../utils/defs.js';
+} from '../../utils/defs.js';
 
 function serialize(hint) {
     // no need to serialize cache when restarting
@@ -57,4 +57,4 @@ function deserialize(data) {
     });
 }
 
-reload.serde('map', serialize, deserialize);
+reload.serde('load-map', serialize, deserialize);

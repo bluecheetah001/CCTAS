@@ -5,14 +5,13 @@ import * as compatability from './utils/compatability.js';
 import * as config from './utils/config.js';
 import {showError} from './utils/misc.js';
 
-import * as inputs from './patches/inputs.js';
-import * as mainloop from './patches/mainloop.js';
-import * as random from './patches/random.js';
-import './patches/savefile.js';
-import * as time from './patches/time.js';
 import './patches/cursor.js';
-import * as cache from './patches/cache.js';
-import './patches/loadmap.js';
+import * as inputs from './patches/inputs.js';
+import * as mainLoop from './patches/main-loop.js';
+import * as random from './patches/random.js';
+import './patches/storage.js';
+import * as time from './patches/time.js';
+import './patches/save-state/all.js';
 
 import * as movie from './tools/movie.js';
 
@@ -39,7 +38,7 @@ const gameActions = {
     },
 };
 
-mainloop.preUpdate.add(() => {
+mainLoop.preUpdate.add(() => {
     const actions = getActions(config.gameKeys);
     for(const [action, vals] of actions.entries()) {
         const func = gameActions[action];
@@ -171,7 +170,7 @@ async function loadEverything() {
     } catch(e) {
         showError(e);
     } finally {
-        mainloop.startGame();
+        mainLoop.startGame();
     }
 }
 document.body.addEventListener('modsLoaded', loadEverything);
@@ -265,9 +264,6 @@ class TAS {
     getNumRngCalls(reset = false) {
         return random.getNumCalls(reset);
     }
-    getCacheCounts() {
-        return cache.getCounts();
-    }
 
     save(finishSetup = false) {
         if(finishSetup && config.mode !== config.SETUP) {
@@ -292,7 +288,6 @@ class TAS {
             return;
         }
         reload.deserialize(saveState || reload.lastSaveState);
-        mainloop.justLoadedSaveState();
     }
 }
 

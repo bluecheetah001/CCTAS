@@ -2,26 +2,33 @@
 
 import * as reload from '../utils/reload.js';
 
-import newPrng from '../libs/seedrandom.js';
+import newPrng from '../libs/seed-random.js';
 
 let count = 0;
 let prng = newPrng({});
 
-Math.random = function random() {
+const origRandom = Math.random;
+function random() {
     count += 1;
     return prng();
-};
+}
+Math.random = random;
 
 export function setSeed(seed) {
     prng = newPrng({seed});
 }
 
-export function getState() {
-    return prng.state();
+export function getState(includeCount = true) {
+    const state = prng.state();
+    if(includeCount) {
+        state.numCalls = count;
+    }
+    return state;
 }
 
 export function setState(state) {
     prng = newPrng({state});
+    count = state.numCalls || 0;
 }
 
 export function getNumCalls(reset = false) {
@@ -30,6 +37,18 @@ export function getNumCalls(reset = false) {
     return c;
 }
 
+export function withOriginalRandom(fn) {
+    if(Math.random === random) {
+        Math.random = origRandom;
+        try {
+            return fn();
+        } finally {
+            Math.random = random;
+        }
+    } else {
+        return fn();
+    }
+}
 
 //
 // recover state from reload

@@ -7,8 +7,8 @@ import * as files from '../utils/files.js';
 import * as inputs from '../patches/inputs.js';
 import * as time from '../patches/time.js';
 import * as random from '../patches/random.js';
-import * as savefile from '../patches/savefile.js';
-import * as mainloop from '../patches/mainloop.js';
+import * as storage from '../patches/storage.js';
+import * as mainLoop from '../patches/main-loop.js';
 
 export async function loadFile(fileName) {
     const movie = await files.loadJson(fileName);
@@ -43,7 +43,7 @@ export async function loadFile(fileName) {
 
     // apply movie state
     random.setState(movie.rng);
-    savefile.setSaveFileData(movie.save);
+    storage.setSaveFileData(movie.save);
     expectedVersions = movie.versions;
     initialRng = movie.rng;
     initialSave = movie.save;
@@ -69,8 +69,8 @@ let initialSave = null;
 
 function recordSetup() {
     expectedVersions = getVersions();
-    initialRng = random.getState();
-    initialSave = savefile.getSaveFileData();
+    initialRng = random.getState(false);
+    initialSave = storage.getSaveFileData();
 }
 function getVersions() {
     const versions = {};
@@ -125,12 +125,12 @@ function applyInputs() {
         }
     }
 }
-mainloop.preFrame.add(() => {
+mainLoop.preFrame.add(() => {
     if(config.mode === config.PLAY) {
         applyInputs();
     }
 });
-mainloop.postFrame.add(() => {
+mainLoop.postFrame.add(() => {
     if(config.mode === config.RECORD) {
         recordPrevInputs();
     }
