@@ -1,4 +1,4 @@
-import * as mainloop from '../patches/mainloop.js';
+import * as mainLoop from '../patches/main-loop.js';
 import * as inputs from '../patches/inputs.js';
 import * as keys from '../utils/keys.js';
 import {showError} from '../utils/misc.js';
@@ -50,7 +50,7 @@ gameDiv.className = '';
 ig.system[System.updateCursorClass] = () => {};
 
 // draw cursor in game
-mainloop.postFrame.add(() => {
+mainLoop.postFrame.add(() => {
     const cursorType = ig.system[System.cursorType];
     const mouseX = inputs.game.getPrev(keys.MOUSE_X);
     const mouseY = inputs.game.getPrev(keys.MOUSE_Y);

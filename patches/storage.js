@@ -1,5 +1,6 @@
 // patch for save file for easy access to save file data and to keep TAS saves from overwriting user saves
 
+import * as random from '../patches/random.js';
 import * as reload from '../utils/reload.js';
 import * as compatability from '../utils/compatability.js';
 
@@ -11,6 +12,12 @@ import {
     CryptUtils,
 } from '../utils/defs.js';
 
+function safeEncrypt(data) {
+    return random.withOriginalRandom(() => {
+        return ig[CryptUtils][CryptUtils.encrypt](data);
+    });
+}
+
 function getData(startupGlobals, includeSaveState) {
     const globals = startupGlobals ? ig[storage][Storage.globals] : getGlobals();
     const slots = [];
@@ -21,7 +28,7 @@ function getData(startupGlobals, includeSaveState) {
         lastSlot: ig[storage][Storage.lastSlot],
         slots: slots,
         autoSlot: ig[storage][Storage.autoSlot] ? ig[storage][Storage.autoSlot].src : null,
-        globals: ig[CryptUtils][CryptUtils.encrypt](globals),
+        globals: safeEncrypt(globals),
     };
     if(includeSaveState) {
         data.currentSave = buildSave();
@@ -46,13 +53,16 @@ function buildSave() {
 
 
 // disable default writing to disk because we write to the movie file instead
-ig[storage][Storage.writeToDisk] = function writeToDisk() {};
+// but still need to encrypt globals to advance rng like normal
+ig[storage][Storage.writeToDisk] = function writeToDisk() {
+    ig[CryptUtils][CryptUtils.encrypt](getGlobals());
+};
 
 // allow writing globals to disk on request
 const userSave = getData(true, false);
 export function writeGlobalsToDisk() {
     const globals = getGlobals();
-    userSave.globals = ig[CryptUtils][CryptUtils.encrypt](globals);
+    userSave.globals = safeEncrypt(globals);
     ig[storage].data.save(JSON.stringify(userSave));
 }
 

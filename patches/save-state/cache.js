@@ -1,6 +1,6 @@
 // patch to recover the state of the data cache when loading a save state
 
-import * as reload from '../utils/reload.js';
+import * as reload from '../../utils/reload.js';
 
 // definitions for constrcting cache entries by type
 function Loadable(class_) {
@@ -65,10 +65,6 @@ const typeToConstructor = {
     SavePresetData: Loadable(sc.jnb),
     Credit: Loadable(sc.cgb),
 };
-
-export function getCounts() {
-    return serialize(reload.LOAD_MAP);
-}
 
 function serialize(hint) {
     // no need to serialize cache when restarting
