@@ -2,7 +2,7 @@
 
 ## Install
 
-Install [CCLoader](...) 
+Install [CCLoader](...)
 
 [Download Zip](...) and unzip into the CCLoader mods folder
 
