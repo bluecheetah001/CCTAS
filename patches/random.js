@@ -1,6 +1,7 @@
 // patch for random number generation to make it reproduceable
 
 import * as reload from '../utils/reload.js';
+import {traceStack} from '../patches/trace.js';
 
 import newPrng from '../libs/seed-random.js';
 
@@ -10,6 +11,7 @@ let prng = newPrng({});
 const origRandom = Math.random;
 function random() {
     count += 1;
+    traceStack();
     return prng();
 }
 Math.random = random;

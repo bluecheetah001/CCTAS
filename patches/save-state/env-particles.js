@@ -58,7 +58,6 @@ class FakeEnvParticleSpawner {
 }
 
 function serialize(hint) {
-    // no need to serialize cache when restarting
     if(hint === reload.RESTART) return undefined;
 
     const spawnerState = [];

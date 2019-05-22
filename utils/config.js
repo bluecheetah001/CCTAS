@@ -109,6 +109,11 @@ export function setPauseOnFrame(frame) {
     pauseOnFrame = frame;
 }
 
+export let trace = false;
+export function setTrace(trace_) {
+    trace = trace_;
+}
+
 export let inMenu = false;
 export function setInMenu(inMenu_) {
     inMenu = inMenu_;
@@ -135,6 +140,7 @@ function serialize(hint) {
         mode: mode,
         speed: framesPerUpdate,
         pauseOn: Number.isFinite(pauseOnFrame) ? pauseOnFrame : false,
+        trace: trace,
         inMenu: inMenu,
         menu: menuKeys.getConfig(),
         game: gameKeys.getConfig(),
@@ -147,6 +153,7 @@ function deserialize(config) {
     setMovieFile(config.movie);
     setMode(config.mode);
     setFramesPerUpdate(config.speed);
+    setTrace(config.trace);
     setPauseOnFrame(config.pauseOn === false ? Infinity : config.pauseOn);
     setInMenu(config.inMenu);
     menuKeys.setConfig(config.menu);

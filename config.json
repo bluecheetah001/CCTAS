@@ -2,7 +2,8 @@
     "movie": "assets/mods/tas/notes/movie.json",
     "mode": "play",
     "speed": 1,
-    "pauseOn": 1162,
+    "pauseOn": 750,
+    "trace": true,
     "inMenu": false,
     "menu": {
         "closeMenu": "F1",
