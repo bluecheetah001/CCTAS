@@ -11,6 +11,8 @@
     "globals": {
         "ig": "readonly",
         "sc": "readonly",
+        "Vec2": "readonly",
+        "Vec3": "readonly",
 
         "cc": "readonly",
         "versions": "readonly",
@@ -135,7 +137,6 @@
         "no-this-before-super": "warn",
         "no-throw-literal": "warn",
         "no-trailing-spaces": "warn",
-        "no-undef-init": "warn",
         "no-undef": "warn",
         "no-unexpected-multiline": "warn",
         "no-unmodified-loop-condition": "warn",

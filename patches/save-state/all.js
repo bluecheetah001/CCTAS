@@ -3,3 +3,4 @@ import './combat.js';
 import './common-events.js';
 import './env-particles.js';
 import './load-map.js';
+import './control.js';

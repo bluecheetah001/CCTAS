@@ -20,9 +20,13 @@ export function shortStr(val, depth) {
             return `[].length=${val.length}`;
         }
     }
-    if(typeof val === 'function') return 'function';
+    switch(typeof val) {
+        case 'function': return 'function';
+        case 'undefined': return 'undefined';
+        case 'string': return `"${val}"`;
+        default: break;
+    }
     if(val === null) return 'null';
-    if(val === undefined) return 'undefined';
     const str = val.toString();
     if(str === '[object Object]') {
         if(depth) {
