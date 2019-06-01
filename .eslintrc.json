@@ -9,6 +9,7 @@
         "sourceType": "module"
     },
     "globals": {
+        "$": "readonly",
         "ig": "readonly",
         "sc": "readonly",
         "Vec2": "readonly",

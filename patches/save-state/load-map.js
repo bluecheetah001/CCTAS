@@ -2,57 +2,51 @@
 
 import * as reload from '../../utils/reload.js';
 
-import {
-    storage,
-} from '../../utils/defs.js';
-
 function serialize(hint) {
     // no need to serialize cache when restarting
     if(hint === reload.RESTART) return undefined;
     if(hint === reload.MAIN_MENU) return undefined;
 
     return {
-        teleportConfig: ig.copy(this.$p),
-        // Mf
-        prevMap: ig.r.T8a,
-        currMap: ig.r.uZ,
-        position: ig.r.cOa,
-        hint: ig[storage].b6a,
-        // XHb
-        cubaum: window.kib,
+        teleportColor: ig.copy(ig.game.teleportColor),
+        previousMap: ig.game.previousMap,
+        mapName: ig.game.mapName,
+        position: ig.game.teleporting.position,
+        loadHint: ig.storage.loadHint,
+        cubaum: window.IS_IT_CUBAUM,
     };
 }
 
 function deserialize(data) {
     if(data === undefined) return;
 
-    ig.merge(ig.r.$p, data.teleportConfig);
-    ig.r.$p.Zua = 0.01; // only used to set overlay timer, which we want to complete in a single frame
+    ig.merge(ig.game.teleportColor, data.teleportColor);
+    ig.game.teleportColor.timeIn = 0.01; // only used to set overlay timer, which we want to complete in a single frame
 
-    // ig.r.Mf
-    ig.r.T8a = data.prevMap;
-    ig.r.uZ = data.currMap;
-    ig.r.If = data.position ? data.position.If : null;
-    ig.r.cOa = data.position;
-    ig.r.kia = true;
-    ig.r.Ix = ig.r.b8a();
-    ig.r.vi.clearQueue();
-    for(const listener of ig.r.tf.Mf) {
-        listener.RJa(data.currMap, data.position, data.hint);
+    // ig.game.teleport
+    ig.game.previousMap = data.previousMap;
+    ig.game.mapName = data.mapName;
+    ig.game.marker = data.position ? data.position.marker : null;
+    ig.game.teleporting.position = data.position;
+    ig.game.teleporting.active = true;
+    ig.game.teleporting.timer = ig.game.onTeleportStart(data.mapName, data.position, data.loadHint);
+    ig.game.events.clearQueue();
+    for(const listener of ig.game.addons.teleport) {
+        listener.onTeleport(data.mapName, data.position, data.loadHint);
     }
-    // ig.r.XHb
-    ig.r.rla = null;
-    ig.r.tR = `LOADING MAP: ${data.currMap}`;
-    window.kib = data.cubaum;
-    const b = data.currMap.vm(`${ig.root}data/maps/`, '.json') + ig.Kn();
+    // ig.game.preloadLevel
+    ig.game.teleporting.levelData = null;
+    ig.game.currentLoadingResource = `LOADING MAP: ${data.mapName}`;
+    window.IS_IT_CUBAUM = data.cubaum;
+    const path = data.mapName.toPath(`${ig.root}data/maps/`, '.json') + ig.getCacheSuffix();
     $.ajax({ // TODO verify ajax will always invoke later or add ordering to reload.serde
         dataType: 'json',
-        url: ig.dpa(b),
-        success: (mapData) => {
-            ig.r.rla = mapData;
+        url: ig.getFilePath(path),
+        success: (levelData) => {
+            ig.game.teleporting.levelData = levelData;
         },
-        error: (a, d, f) => {
-            ig.system.error(new Error(`Loading of Map '${b}' failed: ${a} / ${d} / ${f}`));
+        error: (a, b, c) => {
+            ig.system.error(new Error(`Loading of Map '${path}' failed: ${a} / ${b} / ${c}`));
         },
     });
 }

@@ -1,14 +1,5 @@
 import * as reload from '../utils/reload.js';
 
-import {
-    System,
-    Timer,
-    Event,
-    EventStepBase,
-    EventSteps,
-} from '../utils/defs.js';
-
-
 //
 // patch how timers work
 //
@@ -28,10 +19,10 @@ export function frames() {
 
 export function setFrames(frames_) {
     frameCount = frames_;
-    ig[Timer].time = framesToSeconds(frames_);
+    ig.Timer.time = framesToSeconds(frames_);
 }
 
-// not replacing ig[Timer].step
+// not replacing ig.Timer.step
 // since the game runs a single frame between patching and intercepting
 export function step() {
     if(!didFirstFrame) {
@@ -46,14 +37,14 @@ export function step() {
 function firstFrameFix() {
     // thankfully there is only a single timer instance during the intro
     const time = frameCount / FPS;
-    ig[Timer].time = time;
-    ig.system[System.timer].last = time;
+    ig.Timer.time = time;
+    ig.system.clock.last = time;
 }
 
 // the current game time measured in seconds
 // the actual value is not meaningful except when comparing to another time returned by this function
 export function gameNow() {
-    return ig[Timer].time;
+    return ig.Timer.time;
 }
 
 // the current time measured in seconds
@@ -68,8 +59,8 @@ export function now() {
 // which is also only used for Jet's tutorial on the M.S. Solar
 //
 
-ig[EventSteps].SET_VAR_TIME.prototype.start = function start() {
-    const v = ig[Event][Event.getVarName](this[EventStepBase.varName]);
+ig.EVENT_STEP.SET_VAR_TIME.prototype.start = function start() {
+    const v = ig.Event.getVarName(this.varName);
     if(v) {
         ig.vars.set(v, gameNow() * 1000);
     } else {

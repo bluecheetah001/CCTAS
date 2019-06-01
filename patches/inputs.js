@@ -1,45 +1,34 @@
 import * as keys from '../utils/keys.js';
 
-import {
-    System,
-    Input,
-    Gamepads,
-    Gamepad,
-    gamepads,
-} from '../utils/defs.js';
-
-
 //
 // utils
 //
-
-const gameDiv = document.getElementById('game');
-const gameCanvas = document.getElementById('canvas');
 
 function clamp(value, min, max) {
     return Math.max(Math.min(value, max), min);
 }
 
+// TODO rewrite using Vec2?
 function clientToGameX(x) {
-    let c = gameCanvas;
+    let c = ig.system.canvas;
     while(c) {
         x -= c.offsetLeft;
         c = c.offsetParent;
     }
-    return clamp(x * ig.system.width / ig.system[System.canvasWidth], 0, ig.system.width);
+    return clamp(x * ig.system.width / ig.system.screenWidth, 0, ig.system.width);
 }
 function clientToGameY(y) {
-    let c = gameCanvas;
+    let c = ig.system.canvas;
     while(c) {
         y -= c.offsetTop;
         c = c.offsetParent;
     }
-    return clamp(y * ig.system.height / ig.system[System.canvasHeight], 0, ig.system.height);
+    return clamp(y * ig.system.height / ig.system.screenHeight, 0, ig.system.height);
 }
 
 function gameToClientX(x) {
-    x = x * ig.system[System.canvasWidth] / ig.system.width;
-    let c = gameCanvas;
+    x = x * ig.system.screenWidth / ig.system.width;
+    let c = ig.system.canvas;
     while(c) {
         x += c.offsetLeft;
         c = c.offsetParent;
@@ -47,8 +36,8 @@ function gameToClientX(x) {
     return x;
 }
 function gameToClientY(y) {
-    y = y * ig.system[System.canvasHeight] / ig.system.height;
-    let c = gameCanvas;
+    y = y * ig.system.screenHeight / ig.system.height;
+    let c = ig.system.canvas;
     while(c) {
         y += c.offsetTop;
         c = c.offsetParent;
@@ -105,7 +94,7 @@ interceptEvents(window, 'keydown', (e) => {
 interceptEvents(window, 'keyup', (e) => {
     user.release(keys.getKeyboardKey(e.keyCode));
 });
-interceptFocusedEvents(gameDiv, 'mousedown', (e) => {
+interceptFocusedEvents(ig.system.inputDom, 'mousedown', (e) => {
     mouseMoved(e);
     user.press(keys.getMouseKey(e.button));
 });
@@ -123,7 +112,7 @@ interceptEvents(window, 'DOMMouseScroll', (e) => {
     user.set(keys.WHEEL_Y, -e.detail);
 });
 interceptEvents(document, 'mousemove', mouseMoved);
-interceptEvents(gameDiv, 'touchstart', (e) => {
+interceptEvents(ig.system.inputDom, 'touchstart', (e) => {
     touchMoved(e);
     user.press(keys.getMouseKey(0));
 });
@@ -131,11 +120,11 @@ interceptEvents(document, 'mouseout', (e__) => {
     user.release(keys.MOUSE_X);
     user.release(keys.MOUSE_Y);
 });
-interceptEvents(gameDiv, 'touchend', (e) => {
+interceptEvents(ig.system.inputDom, 'touchend', (e) => {
     touchMoved(e);
     user.release(keys.getMouseKey(0));
 });
-interceptEvents(gameDiv, 'touchmove', touchMoved);
+interceptEvents(ig.system.inputDom, 'touchmove', touchMoved);
 interceptEvents(window, 'blur', (e__) => {
     user.releaseAll();
 });
@@ -193,41 +182,43 @@ export function pollGamepads() {
 // inject inputs
 //
 
-// allow injects while not in focus
-ig.input[Input.isFocusLost] = function isFocusLost() {
-    return false;
-};
+ig.Input.inject({
+    // allow injects while not in focus
+    isInIframeAndUnfocused() {
+        return false;
+    },
+});
 
 // clear any inputs that might be pressed during startup
-ig.input[Input.lastMouse].x = gameToClientX(0);
-ig.input[Input.lastMouse].y = gameToClientY(0);
-if(Input.mouseOut.exists) ig.input[Input.mouseOut] = false;
-ig.input[Input.locked] = {};
-ig.input[Input.pressed] = {};
-ig.input[Input.down] = {};
-ig.input[Input.up] = {};
-ig.input[Input.released] = [];
+ig.input.mouse.x = gameToClientX(0);
+ig.input.mouse.y = gameToClientY(0);
+ig.input.mouseIsOut = false;
+ig.input.locks = {};
+ig.input.presses = {};
+ig.input.actions = {};
+ig.input.keyups = {};
+ig.input.delayedKeyup = [];
 
 // inject custom gamepad object
-const fakeGamepad = new ig[Gamepad]();
+const fakeGamepad = new ig.Gamepad();
 const buttonsToSet = [];
 const axesToSet = [];
-fakeGamepad[Gamepad.buttonThresholds][6] = 30 / 255; // Left Trigger
-fakeGamepad[Gamepad.buttonThresholds][7] = 30 / 255; // Right Trigger
-fakeGamepad[Gamepad.axisThresholds][0] = 7849 / 32767; // Left Stick X
-fakeGamepad[Gamepad.axisThresholds][1] = 7849 / 32767; // Left Stick Y
-fakeGamepad[Gamepad.axisThresholds][2] = 8689 / 32767; // Right Stick X
-fakeGamepad[Gamepad.axisThresholds][3] = 8689 / 32767; // Right Stick Y
-ig[gamepads][Gamepads.gamepads] = {html5Pad0: fakeGamepad}; // id does not matter, just reusing the default id
+fakeGamepad.buttonDeadzones[ig.BUTTONS.LEFT_TRIGGER] = 30 / 255; // Left Trigger
+fakeGamepad.buttonDeadzones[ig.BUTTONS.RIGHT_TRIGGER] = 30 / 255; // Right Trigger
+fakeGamepad.axesDeadzones[ig.AXES.LEFT_STICK_X] = 7849 / 32767; // Left Stick X
+fakeGamepad.axesDeadzones[ig.AXES.LEFT_STICK_Y] = 7849 / 32767; // Left Stick Y
+fakeGamepad.axesDeadzones[ig.AXES.RIGHT_STICK_X] = 8689 / 32767; // Right Stick X
+fakeGamepad.axesDeadzones[ig.AXES.RIGHT_STICK_Y] = 8689 / 32767; // Right Stick Y
+ig.gamepad.gamepads = {html5Pad0: fakeGamepad}; // id does not matter, just reusing the default id
 // replace gamepad plugins
-ig[gamepads][Gamepads.plugins] = [
+ig.gamepad.handlers = [
     {
         update: (gamepads__) => {
             for(let i = 0; i < buttonsToSet.length; i += 1) {
-                fakeGamepad[Gamepad.setButton](i, buttonsToSet[i]);
+                fakeGamepad.updateButton(i, buttonsToSet[i]);
             }
             for(let i = 0; i < axesToSet.length; i += 1) {
-                fakeGamepad[Gamepad.setAxis](i, axesToSet[i]);
+                fakeGamepad.updateAxes(i, axesToSet[i]);
             }
         },
     },
@@ -272,7 +263,7 @@ export function inject() {
                 break;
             case keys.MOUSE:
                 if(game.isPressed(key)) {
-                    gameDiv.dispatchEvent(new MouseEvent('mousedown', {clientX, clientY, button: key.code}));
+                    ig.system.inputDom.dispatchEvent(new MouseEvent('mousedown', {clientX, clientY, button: key.code}));
                 }
                 if(game.isReleased(key)) {
                     window.dispatchEvent(new MouseEvent('mouseup', {clientX, clientY, button: key.code}));

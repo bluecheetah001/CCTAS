@@ -9,15 +9,6 @@ import * as reload from '../utils/reload.js';
 import * as inputs from '../patches/inputs.js';
 import * as time from '../patches/time.js';
 
-import {
-    run,
-    Timer,
-    Game,
-    System,
-    sound,
-    WebAudio,
-} from '../utils/defs.js';
-
 //
 // patch main loop
 //
@@ -36,82 +27,85 @@ export function startGame() {
     canRunGame = true;
 }
 
-// TODO this does not intercept on the same frame every time
-// so the first thing that any TAS would need to do is skip the intro to resync it
-// and hopefully loading mods is never so slow that the intro advances on its own before interception
-ig.system[run] = function update() {
-    try {
-        const start = time.now();
+ig.System.inject({
+    // TODO this does not intercept on the same frame every time
+    // so the first thing that any TAS would need to do is skip the intro to resync it
+    // and hopefully loading mods is never so slow that the intro advances on its own before interception
+    run() {
+        try {
+            const start = time.now();
 
-        inputs.pollGamepads();
+            inputs.pollGamepads();
 
-        preUpdate.fire();
+            preUpdate.fire();
 
-        framesToRun += config.framesPerUpdate;
-        while(framesToRun >= 1) {
-            if(canRunGame // mod fully loaded
-                && ig.ready // game is not loading
-                && (ig.system.delegate[Game.preloadTimer] <= 0 || ig.system.delegate[Game.preloadMap] !== null) // game is not preloading
-                && time.frames() < config.pauseOnFrame // tas is not paused
-                && time.now() - start < MAX_UPDATE_TIME // more time left in the update cycle
-            ) {
-                framesToRun -= 1;
+            framesToRun += config.framesPerUpdate;
+            while(framesToRun >= 1) {
+                if(canRunGame // mod fully loaded
+                    && !ig.loading // game is not loading
+                    && (ig.game.teleporting.timer <= 0 || ig.game.teleporting.levelData !== null) // game is not preloading
+                    && time.frames() < config.pauseOnFrame // tas is not paused
+                    && time.now() - start < MAX_UPDATE_TIME // more time left in the update cycle
+                ) {
+                    framesToRun -= 1;
 
-                preFrame.fire();
 
-                inputs.inject();
+                    preFrame.fire();
 
-                // update time
-                time.step();
-                ig.system[System.tick] = ig.system[System.timer][Timer.tick]();
-                ig.system[System.tickPause] = ig.system[System.isPaused]() ? 0 : ig.system[System.tick];
-                ig.system[System.tickScale] = ig.system[System.tickPause] * ig.system[System.timeScale];
-                if(ig.system[System.fastForward]) {
-                    ig.system[System.tickPause] *= 8;
-                    ig.system[System.tickScale] *= 8;
+                    inputs.inject();
+
+                    // update time
+                    time.step();
+                    this.rawTick = this.clock.tick();
+                    this.actualTick = this.hasFocusLost() ? 0 : this.rawTick;
+                    this.tick = this.actualTick * this.timeFactor;
+                    if(this.skipMode) {
+                        this.actualTick *= 8;
+                        this.tick *= 8;
+                    }
+                    // supposedly timeOffset could be non-zero, but im not sure what circumstances that would actually happen in
+                    // perhaps when sound is paused, but when the sound is resumed it will get set back to 0 anyway
+                    // if sound is ever patched then this will probably be obsolete or make more sense
+                    ig.soundManager.context.timeOffset = 0;
+
+                    // update the game
+                    // this ends up drawing multiple times when fastforwarding...
+                    ig.game.run();
+
+                    postFrame.fire();
+
+                    if(willLoad()) {
+                        reload.serialize(reload.LOAD_MAP);
+                    }
+                } else {
+                    framesToRun = 0;
                 }
-                // supposedly this could be non-zero, but im not sure what circumstances that would actually happen in
-                // perhaps when sound is paused, but when the sound is resumed it will get set back to 0 anyway
-                // if sound is ever patched then this will probably be obsolete or make more sense
-                ig[sound].context[WebAudio.offset] = 0;
-
-                // update the game
-                // this ends up drawing multiple times when fastforwarding...
-                ig.system.delegate[run]();
-
-                postFrame.fire();
-
-                if(willLoad()) {
-                    reload.serialize(reload.LOAD_MAP);
-                }
-            } else {
-                framesToRun = 0;
             }
+
+            postUpdate.fire();
+
+            inputs.user.update();
+            inputs.user.release(keys.WHEEL_X);
+            inputs.user.release(keys.WHEEL_Y);
+
+            window.requestAnimationFrame(this.run.bind(this));
+        } catch(e) {
+            this.error(e);
         }
-
-        postUpdate.fire();
-
-        inputs.user.update();
-        inputs.user.release(keys.WHEEL_X);
-        inputs.user.release(keys.WHEEL_Y);
-
-        window.requestAnimationFrame(ig.system[run]);
-    } catch(e) {
-        ig.system.error(e);
-    }
-};
+    },
+});
 
 function willLoad() {
-    if(ig.r.paused /* && !ig.Wv */) return false;
-    if(ig.r[Game.preloadTimer] <= 0) return false;
+    if(ig.game.paused && !ig.loading) return false;
+    if(ig.game.teleporting.timer <= 0) return false;
 
     let tick = time.framesToSeconds(time.frames() + 1) - time.gameNow();
-    if(ig.system[System.isPaused]()) tick = 0;
-    if(ig.system[System.fastForward]) tick *= 8;
-    if(ig.r.Ix - tick > 0) return false;
+    if(ig.system.hasFocusLost()) tick = 0;
+    if(ig.system.skipMode) tick *= 8;
+    if(ig.game.teleporting.timer - tick > 0) return false;
 
     tick = Math.min(0.05, tick);
-    if(ig.r.Ix - tick > 0) {
+    if(ig.game.teleporting.timer - tick > 0) {
         console.warn('Not creating save state due to fast forward');
         return false;
     }

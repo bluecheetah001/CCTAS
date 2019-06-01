@@ -4,66 +4,60 @@ import * as random from '../patches/random.js';
 import * as reload from '../utils/reload.js';
 import * as compatability from '../utils/compatability.js';
 
-import {
-    SaveSlot,
-    StorageListener,
-    Storage,
-    storage,
-    CryptUtils,
-} from '../utils/defs.js';
-
 function safeEncrypt(data) {
     return random.withOriginalRandom(() => {
-        return ig[CryptUtils][CryptUtils.encrypt](data);
+        return ig.storage._encrypt(data);
     });
 }
 
 function getData(startupGlobals, includeSaveState) {
-    const globals = startupGlobals ? ig[storage][Storage.globals] : getGlobals();
+    const globals = startupGlobals ? ig.storage.globalData : getGlobals();
     const slots = [];
-    for(const slot of ig[storage][Storage.slots]) {
+    for(const slot of ig.storage.slots) {
         slots.push(slot.src);
     }
     const data = {
-        lastSlot: ig[storage][Storage.lastSlot],
+        lastUsedSlot: ig.storage.lastUsedSlot,
         slots: slots,
-        autoSlot: ig[storage][Storage.autoSlot] ? ig[storage][Storage.autoSlot].src : null,
+        autoSlot: ig.storage.autoSlot ? ig.storage.autoSlot.src : null,
         globals: safeEncrypt(globals),
     };
     if(includeSaveState) {
         data.currentSave = buildSave();
-        data.regen = ig[storage].uta;
+        data.resetAfterTeleport = ig.storage.resetAfterTeleport;
     }
     return data;
 }
 
 function getGlobals() {
     const globals = {};
-    for(const listener of ig[storage][Storage.listeners]) {
-        if(listener[StorageListener.update]) listener[StorageListener.update](globals);
+    for(const listener of ig.storage.listeners) {
+        if(listener.onStorageGlobalSave) listener.onStorageGlobalSave(globals);
     }
     return globals;
 }
 
 function buildSave() {
     const save = {};
-    ig[storage].fXa(save, ig.r.uZ, ig.r.cOa && ig.r.cOa.kpa());
+    // TODO
+    ig.storage._saveState(save, ig.game.uZ, ig.game.cOa && ig.game.cOa.kpa());
     return save;
 }
 
-
-// disable default writing to disk because we write to the movie file instead
-// but still need to encrypt globals to advance rng like normal
-ig[storage][Storage.writeToDisk] = function writeToDisk() {
-    ig[CryptUtils][CryptUtils.encrypt](getGlobals());
-};
+ig.Storage.inject({
+    // disable default writing to disk because we write to the movie file instead
+    // but still need to encrypt globals to advance rng like normal
+    _saveToStorage() {
+        this._encrypt(getGlobals());
+    },
+});
 
 // allow writing globals to disk on request
 const userSave = getData(true, false);
 export function writeGlobalsToDisk() {
     const globals = getGlobals();
     userSave.globals = safeEncrypt(globals);
-    ig[storage].data.save(JSON.stringify(userSave));
+    ig.storage.data.save(JSON.stringify(userSave));
 }
 
 export function getSaveFileData() {
@@ -76,19 +70,19 @@ export function getStartupSaveFileData() {
 
 function _setSaveFileData(data, filter) {
     // save slots
-    ig[storage][Storage.lastSlot] = data.lastSlot;
-    ig[storage][Storage.slots] = [];
+    ig.storage.lastUsedSlot = data.lastSlot;
+    ig.storage.slots = [];
     for(const slotSrc of data.slots) {
-        ig[storage][Storage.slots].push(new ig[SaveSlot](slotSrc));
+        ig.storage.slots.push(new ig.SaveSlot(slotSrc));
     }
     if(data.autoSlot) {
-        ig[storage][Storage.autoSlot] = new ig[SaveSlot](data.autoSlot);
+        ig.storage.autoSlot = new ig.SaveSlot(data.autoSlot);
     } else {
-        ig[storage][Storage.autoSlot] = null;
+        ig.storage.autoSlot = null;
     }
 
     // globals
-    let globals = ig[CryptUtils][CryptUtils.decrypt](data.globals);
+    let globals = ig.storage._decrypt(data.globals);
     if(filter) {
         const filtered = {};
         for(const option of compatability.optionsWhiteList) {
@@ -101,44 +95,23 @@ function _setSaveFileData(data, filter) {
         // drop achievements, they should not matter...
         globals = {options: filtered};
     }
-    globals = ig.merge(ig[storage][Storage.globals], globals);
-    for(const listener of ig[storage][Storage.listeners]) {
-        if(listener[StorageListener.apply]) listener[StorageListener.apply](globals);
+    globals = ig.merge(ig.storage.globalData, globals);
+    for(const listener of ig.storage.listeners) {
+        if(listener.onStorageGlobalLoad) listener.onStorageGlobalLoad(globals);
     }
 
     // savestate
     if(data.currentSave) {
         // the game suggests useing ig.copy(data.currentSave), but that probably insn't necessary.
-        ig[storage].sR = data.currentSave;
-        ig[storage].TF = data.currentSave;
-        ig[storage].uta = data.regen;
+        ig.storage.currentLoadFile = data.currentSave;
+        ig.storage.checkPointSave = data.currentSave;
+        ig.storage.resetAfterTeleport = data.resetAfterTeleport;
     }
 }
 
 export function setSaveFileData(data) {
     _setSaveFileData(data, true);
 }
-
-// fix Storage.getSlotSrc to be able to properly show errors when there is no auto save
-// TODO this should be moved into a mod on its own (ideally ccloader or simplify)
-ig[storage][Storage.getSlotSrc] = function getSlotSrc(slot, extra) {
-    let save = null;
-    if(slot === -1) {
-        save = this[Storage.autoSlot];
-    } else {
-        save = this[Storage.slots][slot];
-    }
-    if(save) {
-        let data = save.getData();
-        if(extra) {
-            data = ig.merge(ig.copy(data), extra);
-        }
-        return ig[CryptUtils][CryptUtils.encrypt](data);
-    } else {
-        return '';
-    }
-};
-
 
 //
 // recover state from reload

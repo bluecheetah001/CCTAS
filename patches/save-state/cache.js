@@ -3,9 +3,18 @@
 import * as reload from '../../utils/reload.js';
 
 // definitions for constrcting cache entries by type
+
+// single path argument for file to load
 function Loadable(class_) {
     return ([path]) => {
         return new class_(path);
+    };
+}
+
+// array of string arguments (often to read a const object)
+function Simple(class_) {
+    return (args) => {
+        return new class_(...args);
     };
 }
 function ImagePatternSheet(class_) {
@@ -34,36 +43,35 @@ function AudioTrack(class_) {
         );
     };
 }
-function CHAR_EXPRESSION(class_) {
-    return ([character, expression]) => {
-        return new class_(character, expression);
-    };
-}
 const typeToConstructor = {
-    Image: Loadable(ig.ia),
-    ImagePatternSheet: ImagePatternSheet(ig.Xz),
-    MultiAudio: Loadable(ig.hxa),
-    WebAudioBuffer: Loadable(ig.Sya),
-    TrackDefault: AudioTrack(ig.dUa),
-    TrackWebAudio: AudioTrack(ig.npb),
-    AnimationSheet: Loadable(ig.Al),
-    Extension: Loadable(ig.rhb),
-    EventSheet: Loadable(ig.ohb),
-    EffectSheet: Loadable(ig.ud),
-    GLOW_COLOR: Loadable(ig.Jwa), // not actually Loadable, arg is fillStyle
-    Weather: Loadable(ig.Tka), // not actually Loadable, arg is key into const object
-    PropSheet: Loadable(ig.Glb),
-    ScalablePropSheet: Loadable(ig.qnb),
-    Parallax: Loadable(ig.ySa),
-    EnvParticleSpawner: Loadable(ig.zwa), // not actually Loadable, arg is key into const object
-    Video: Loadable(ig.Upb),
-    PlayerConfig: Loadable(sc.VV),
-    AreaMap: Loadable(sc.Sva),
-    Character: Loadable(sc.i9),
-    CHAR_EXPRESSION: CHAR_EXPRESSION(sc.lI),
-    Enemy: Loadable(sc.wV),
-    SavePresetData: Loadable(sc.jnb),
-    Credit: Loadable(sc.cgb),
+    AnimationSheet: Loadable(ig.AnimationSheet),
+    AreaMap: Loadable(sc.AreaLoadable),
+    ARENA_CACHE: Simple(sc.ArenaCache),
+    CHAR_EXPRESSION: Simple(sc.CharacterExpression),
+    Character: Loadable(sc.Character),
+    Credit: Loadable(sc.CreditSectionLoadable),
+    CupAsset: Loadable(sc.CupAsset),
+    EffectSheet: Loadable(ig.EffectSheet),
+    Enemy: Loadable(sc.EnemyType),
+    EnvParticleSpawner: Simple(ig.EnvParticleSpawner),
+    EventSheet: Loadable(ig.EventSheet),
+    Extension: Loadable(ig.Extension),
+    Font: Loadable(ig.Font),
+    GLOW_COLOR: Simple(ig.GlowColor),
+    Image: Loadable(ig.Image),
+    ImagePatternSheet: ImagePatternSheet(ig.ImagePatternSheet),
+    MultiAudio: Loadable(ig.MultiAudio),
+    MultiFont: Loadable(ig.MultiFont),
+    Parallax: Loadable(ig.Parallax),
+    PlayerConfig: Loadable(sc.PlayerConfig),
+    PropSheet: Loadable(ig.PropSheet),
+    SavePresetData: Loadable(sc.SavePresetData),
+    ScalablePropSheet: Loadable(ig.ScalePropSheet),
+    TrackDefault: AudioTrack(ig.TrackDefault),
+    TrackWebAudio: AudioTrack(ig.TrackWebAudio),
+    Video: Loadable(ig.Video),
+    Weather: Simple(ig.WeatherInstance),
+    WebAudioBuffer: Loadable(ig.WebAudioBuffer),
 };
 
 function serialize(hint) {
@@ -71,15 +79,15 @@ function serialize(hint) {
     if(hint === reload.RESTART) return undefined;
 
     const cacheCounts = {};
-    for(const type in ig.KBa) {
-        const igTypeCache = ig.KBa[type];
+    for(const type in ig.cacheList) {
+        const igTypeCache = ig.cacheList[type];
         const typeCache = {};
         for(const key in igTypeCache) {
             const cached = igTypeCache[key];
             if(cached) {
                 typeCache[key] = {
-                    refCount: cached.Lga,
-                    emptyCount: cached.CDa,
+                    refCount: cached.referenceCount,
+                    emptyCount: cached.emptyMapChangeCount,
                 };
             }
         }
@@ -99,19 +107,19 @@ function deserialize(cacheCounts) {
     }
 
     // remove cache entries that should not exist
-    for(const type in ig.KBa) {
-        const igTypeCache = ig.KBa[type];
+    for(const type in ig.cacheList) {
+        const igTypeCache = ig.cacheList[type];
         const typeCache = cacheCounts[type] || {};
         for(const key in igTypeCache) {
             const cached = igTypeCache[key];
             const counts = typeCache[key];
             if(!counts && cached) {
-                if(cached.Lga === 0) {
-                    if(cached.Wo) cached.Wo();
+                if(cached.referenceCount === 0) {
+                    if(cached.onCacheCleared) cached.onCacheCleared();
                 } else {
                     // remove cache key so it does not clear the actual cache when cleaning.
                     // and enables immediate cleanup
-                    cached.kr = null;
+                    cached.cacheKey = null;
                 }
                 igTypeCache[key] = null;
             }
@@ -129,9 +137,9 @@ function deserialize(cacheCounts) {
     // reset cache empty count
     for(const type in cacheCounts) {
         const typeCache = cacheCounts[type];
-        const igTypeCache = ig.KBa[type];
+        const igTypeCache = ig.cacheList[type];
         for(const key in typeCache) {
-            igTypeCache[key].CDa = typeCache[key].emptyCount;
+            igTypeCache[key].emptyMapChangeCount = typeCache[key].emptyCount;
         }
     }
 
@@ -140,24 +148,24 @@ function deserialize(cacheCounts) {
 
 function silentLoad() {
     ig.ready = false;
-    // ig.Wv = true;
+    ig.loading = true;
     let loaded = 0;
     let loading = 0;
     function loadedCallback(type__, path__, status__) {
         loaded += 1;
-        if(loading < ig.hn.length) {
+        if(loading < ig.resources.length) {
             console.warn('Loading save state did not fully populate cache?');
         }
         loadMore();
     }
     function loadMore() {
-        for(;loading < ig.hn.length; loading += 1) {
-            ig.hn[loading].load(loadedCallback);
+        for(;loading < ig.resources.length; loading += 1) {
+            ig.resources[loading].load(loadedCallback);
         }
         if(loaded === loading) {
-            ig.hn.length = 0;
+            ig.resources.length = 0;
             ig.ready = true;
-            // ig.Wv = false;
+            ig.loading = false;
         }
     }
     loadMore();

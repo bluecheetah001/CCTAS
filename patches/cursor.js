@@ -2,9 +2,6 @@ import * as mainLoop from '../patches/main-loop.js';
 import * as inputs from '../patches/inputs.js';
 import * as keys from '../utils/keys.js';
 import {showError} from '../utils/misc.js';
-import {System} from '../utils/defs.js';
-
-const gameDiv = document.getElementById('game');
 
 // TODO move to a util class
 // wrapper around Image for a simpler draw method
@@ -46,15 +43,16 @@ const throwIcon = new Img('game/page/img/cursor-throw-1.png');
 const meleeIcon = new Img('game/page/img/cursor-melee-1.png');
 
 // always show system cursor
-gameDiv.className = '';
-ig.system[System.updateCursorClass] = () => {};
+ig.system.inputDom.className = '';
+ig.System.inject({
+    updateCursorClass() {},
+});
 
 // draw cursor in game
 mainLoop.postFrame.add(() => {
-    const cursorType = ig.system[System.cursorType];
     const mouseX = inputs.game.getPrev(keys.MOUSE_X);
     const mouseY = inputs.game.getPrev(keys.MOUSE_Y);
-    switch(cursorType) {
+    switch(ig.system.cursorType) {
         case 'none':
             // gamepad, dont draw cursor
             break;

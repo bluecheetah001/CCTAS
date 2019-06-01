@@ -4,72 +4,42 @@ import * as reload from '../../utils/reload.js';
 // but first calls update and clear, both of which will can call random
 // so we can get away with forcably clearing the particles and reconstructing dummy objects which will then be updated, cleared, and droped like nothing happend
 
-// note that the actual EnvParticleSpawner class is Cacheable and cannot be constructed during deserialization.
-// and annoyingly EnvParticles does not call increaseRef/decreateRef on the EnvParticleSpawner instances.
-
-// specifically only implementing methods that are called to protect against these objects from escaping
-const epsProto = ig.zwa.prototype;
-class FakeEnvParticleSpawner {
-    constructor(state) {
-        this.fd = ig.Pm[state.name];
-        this.rb = [];
-        for(let i = 0; i < this.fd.rb.length; i += 1) {
-            const sizeState = state.sizes[i];
-            const sizeDef = this.fd.rb[i];
-            this.rb.push({
-                scale: sizeDef.scale,
-                PK: sizeState.spawnInterval,
-                It: sizeState.spawnTimer,
-                gc: [],
-            });
-        }
-        this.expectedOrder = 0;
-    }
-    update() {
-        if(this.expectedOrder !== 0) {
-            throw new Error('fake env particle spawner updated out of order');
-        }
-        this.expectedOrder = 1;
-        return epsProto.update.call(this);
-    }
-    nb() {
-        if(this.expectedOrder !== 1) {
-            throw new Error('fake env particle spawner drawn out of order');
-        }
-        this.expectedOrder = 2;
-        // dont need to render, screen has overlay
-    }
-    lab(quantity, immediately) {
-        if(this.expectedOrder !== 2) {
-            throw new Error('fake env particle spawner cleaned out of order');
-        }
-        if(quantity !== 0 || immediately !== true || this.didInit) {
-            throw new Error('fake env particle spawner cleaned with incorrect arguments');
-        }
-        this.expectedOrder = 3;
-        return epsProto.lab.call(this, quantity, immediately);
-    }
-    Xp(size) {
-        return epsProto.Xp.call(this, size);
-    }
-    Rdb(size, tick) {
-        return epsProto.Rdb.call(this, size, tick);
-    }
+// note that the actual EnvParticleSpawner class is Cacheable and cannot be directly constructed during deserialization.
+// partly because EnvParticles does not call increaseRef/decreateRef on the EnvParticleSpawner instances.
+function FakeEnvParticleSpawner(state) {
+    this.name = state.name;
+    this.config = ig.ENV_PARTICLES[state.name];
+    this.levels = state.levels.map((level) => ({
+        scale: level.scale,
+        // anim: not drawing
+        spawnInterval: level.spawnInterval,
+        spawnTimer: level.spawnTimer,
+        particles: [], // dont need to recover the individual particles
+    }));
 }
+const epsProto = ig.EnvParticleSpawner.prototype;
+Object.assign(FakeEnvParticleSpawner.prototype, {
+    // copy called functions to avoid false positives in trace.js
+    setQuantity: epsProto.setQuantity,
+    update: epsProto.update,
+    spawnParticle: epsProto.spawnParticle,
+    updateParticles: epsProto.updateParticles,
+    // ignore draw since we dont want to init this.animSheet (its Cacheable) and the screen is faded out anyway
+    draw() {},
+});
 
 function serialize(hint) {
     if(hint === reload.RESTART) return undefined;
 
     const spawnerState = [];
-    for(const particleSpawner of ig.FJ.WI) {
+    for(const particleSpawner of ig.envParticles.activeSpawners) {
         spawnerState.push({
             name: particleSpawner.name,
-            sizes: particleSpawner.rb.map((s) => {
-                return {
-                    spawnInterval: s.PK,
-                    spawnTimer: s.It,
-                };
-            }),
+            sizes: particleSpawner.levels.map((level) => ({
+                scale: level.scale,
+                spawnInterval: level.spawnInterval,
+                spawnTimer: level.spawnTimer,
+            })),
         });
     }
     return spawnerState;
@@ -78,9 +48,9 @@ function serialize(hint) {
 function deserialize(spawnerState) {
     if(spawnerState === undefined) return;
 
-    ig.FJ.WI.length = 0;
+    ig.envParticles.activeSpawners.length = 0;
     for(const state of spawnerState) {
-        ig.FJ.WI.push(new FakeEnvParticleSpawner(state));
+        ig.envParticles.activeSpawners.push(new FakeEnvParticleSpawner(state));
     }
 }
 
